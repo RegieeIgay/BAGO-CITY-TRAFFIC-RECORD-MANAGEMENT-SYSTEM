@@ -2,6 +2,11 @@
 include('sidebar.php'); 
 require_once("db.php");
 
+// Get role from URL for access control
+$user_role = $_GET['role'] ?? 'User';
+$is_admin = (strtolower($user_role) === 'admin');
+$role_param = "?role=" . urlencode($user_role);
+
 $status = "";
 $upload_dir = "uploads/";
 
@@ -9,66 +14,74 @@ if (!is_dir($upload_dir)) {
     mkdir($upload_dir, 0777, true);
 }
 
-// 1. Handle Delete Request
+// 1. Handle Delete Request - RESTRICTED TO ADMIN
 if (isset($_GET['delete'])) {
-    $id = $_GET['delete'];
-    $img_stmt = $conn->prepare("SELECT profile_image FROM drivers WHERE driver_id = ?");
-    $img_stmt->bind_param("s", $id);
-    $img_stmt->execute();
-    $res = $img_stmt->get_result();
-    if($row = $res->fetch_assoc()){
-        if($row['profile_image'] != 'default-avatar.png' && file_exists($upload_dir . $row['profile_image'])){
-            unlink($upload_dir . $row['profile_image']);
-        }
-    }
-    $stmt = $conn->prepare("DELETE FROM drivers WHERE driver_id = ?");
-    $stmt->bind_param("s", $id);
-    if ($stmt->execute()) {
-        $status = "<div class='alert success'>Driver deleted successfully!</div>";
+    if (!$is_admin) {
+        $status = "<div class='alert error'>Access Denied: You do not have permission to delete records.</div>";
     } else {
-        $status = "<div class='alert error'>Error: Cannot delete driver. They may have active violations.</div>";
+        $id = $_GET['delete'];
+        $img_stmt = $conn->prepare("SELECT profile_image FROM drivers WHERE driver_id = ?");
+        $img_stmt->bind_param("s", $id);
+        $img_stmt->execute();
+        $res = $img_stmt->get_result();
+        if($row = $res->fetch_assoc()){
+            if($row['profile_image'] != 'default-avatar.png' && file_exists($upload_dir . $row['profile_image'])){
+                unlink($upload_dir . $row['profile_image']);
+            }
+        }
+        $stmt = $conn->prepare("DELETE FROM drivers WHERE driver_id = ?");
+        $stmt->bind_param("s", $id);
+        if ($stmt->execute()) {
+            $status = "<div class='alert success'>Driver deleted successfully!</div>";
+        } else {
+            $status = "<div class='alert error'>Error: Cannot delete driver. They may have active violations.</div>";
+        }
     }
 }
 
-// 2. Handle Form Submission
+// 2. Handle Form Submission - RESTRICTED TO ADMIN
 if (isset($_POST['save_driver'])) {
-    $driver_id = $_POST['driver_id'];
-    $full_name = $_POST['full_name'];
-    $license_no = $_POST['license_no'];
-    $address = $_POST['address'];
-    $contact_no = $_POST['contact_no'];
-    $is_edit = $_POST['is_edit'];
-    
-    $image_name = $_POST['old_image'] ?? 'default-avatar.png';
-    if (!empty($_FILES['profile_image']['name'])) {
-        $file_ext = pathinfo($_FILES['profile_image']['name'], PATHINFO_EXTENSION);
-        $new_filename = "DRV_" . time() . "_" . rand(1000, 9999) . "." . $file_ext;
-        if (move_uploaded_file($_FILES['profile_image']['tmp_name'], $upload_dir . $new_filename)) {
-            if ($is_edit == "1" && $image_name != 'default-avatar.png' && file_exists($upload_dir . $image_name)) {
-                unlink($upload_dir . $image_name);
-            }
-            $image_name = $new_filename;
-        }
-    }
-
-    if ($is_edit == "1") {
-        $stmt = $conn->prepare("UPDATE drivers SET full_name=?, license_no=?, address=?, contact_no=?, profile_image=? WHERE driver_id=?");
-        $stmt->bind_param("ssssss", $full_name, $license_no, $address, $contact_no, $image_name, $driver_id);
-        $msg = "Driver updated successfully!";
+    if (!$is_admin) {
+        $status = "<div class='alert error'>Access Denied: You do not have permission to modify data.</div>";
     } else {
-        $check = $conn->prepare("SELECT driver_id FROM drivers WHERE driver_id = ?");
-        $check->bind_param("s", $driver_id);
-        $check->execute();
-        if ($check->get_result()->num_rows > 0) {
-            $status = "<div class='alert error'>Error: Driver ID already exists!</div>";
-        } else {
-            $stmt = $conn->prepare("INSERT INTO drivers (driver_id, full_name, license_no, address, contact_no, profile_image) VALUES (?, ?, ?, ?, ?, ?)");
-            $stmt->bind_param("ssssss", $driver_id, $full_name, $license_no, $address, $contact_no, $image_name);
-            $msg = "Driver registered successfully!";
+        $driver_id = $_POST['driver_id'];
+        $full_name = $_POST['full_name'];
+        $license_no = $_POST['license_no'];
+        $address = $_POST['address'];
+        $contact_no = $_POST['contact_no'];
+        $is_edit = $_POST['is_edit'];
+        
+        $image_name = $_POST['old_image'] ?? 'default-avatar.png';
+        if (!empty($_FILES['profile_image']['name'])) {
+            $file_ext = pathinfo($_FILES['profile_image']['name'], PATHINFO_EXTENSION);
+            $new_filename = "DRV_" . time() . "_" . rand(1000, 9999) . "." . $file_ext;
+            if (move_uploaded_file($_FILES['profile_image']['tmp_name'], $upload_dir . $new_filename)) {
+                if ($is_edit == "1" && $image_name != 'default-avatar.png' && file_exists($upload_dir . $image_name)) {
+                    unlink($upload_dir . $image_name);
+                }
+                $image_name = $new_filename;
+            }
         }
-    }
-    if (!empty($stmt) && $stmt->execute()) {
-        $status = "<div class='alert success'>$msg</div>";
+
+        if ($is_edit == "1") {
+            $stmt = $conn->prepare("UPDATE drivers SET full_name=?, license_no=?, address=?, contact_no=?, profile_image=? WHERE driver_id=?");
+            $stmt->bind_param("ssssss", $full_name, $license_no, $address, $contact_no, $image_name, $driver_id);
+            $msg = "Driver updated successfully!";
+        } else {
+            $check = $conn->prepare("SELECT driver_id FROM drivers WHERE driver_id = ?");
+            $check->bind_param("s", $driver_id);
+            $check->execute();
+            if ($check->get_result()->num_rows > 0) {
+                $status = "<div class='alert error'>Error: Driver ID already exists!</div>";
+            } else {
+                $stmt = $conn->prepare("INSERT INTO drivers (driver_id, full_name, license_no, address, contact_no, profile_image) VALUES (?, ?, ?, ?, ?, ?)");
+                $stmt->bind_param("ssssss", $driver_id, $full_name, $license_no, $address, $contact_no, $image_name);
+                $msg = "Driver registered successfully!";
+            }
+        }
+        if (!empty($stmt) && $stmt->execute()) {
+            $status = "<div class='alert success'>$msg</div>";
+        }
     }
 }
 ?>
@@ -84,7 +97,6 @@ if (isset($_POST['save_driver'])) {
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
         body { background-color: #f4f7f6; display: flex; }
 
-        /* FIXED RESPONSIVE LAYOUT ENGINE */
         .main-content { 
             flex: 1; 
             margin-left: 260px; 
@@ -107,6 +119,34 @@ if (isset($_POST['save_driver'])) {
 
         .header h1 { font-size: 1.5rem; color: #003366; }
 
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        /* Search Input Style */
+        .search-container {
+            position: relative;
+            min-width: 250px;
+        }
+        .search-container input {
+            width: 100%;
+            padding: 10px 15px 10px 35px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            outline: none;
+            font-size: 14px;
+        }
+        .search-container i {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #888;
+        }
+
         .btn-add { 
             background: #003366; 
             color: white; 
@@ -125,15 +165,12 @@ if (isset($_POST['save_driver'])) {
         th, td { padding: 15px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px; }
         th { background: #f9f9f9; color: #666; font-size: 12px; text-transform: uppercase; }
         
-        /* Image Thumbnail Style */
         .driver-thumb { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid #eee; cursor: zoom-in; transition: 0.2s; }
         .driver-thumb:hover { transform: scale(1.1); border-color: #0059b3; }
 
-        /* Lightbox (Expanded Image) Style */
         .lightbox { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); align-items: center; justify-content: center; cursor: zoom-out; }
         .lightbox img { max-width: 90%; max-height: 90%; border-radius: 10px; box-shadow: 0 0 20px rgba(0,0,0,0.5); animation: zoomIn 0.3s ease; }
 
-        /* FIXED RESPONSIVE MODAL */
         .modal { 
             display: none; 
             position: fixed; 
@@ -174,12 +211,10 @@ if (isset($_POST['save_driver'])) {
         .btn-edit { color: #0059b3; cursor: pointer; font-size: 18px; }
         .btn-delete { color: #e74c3c; font-size: 18px; margin-left: 10px; }
 
-        /* Alerts */
         .alert { padding: 15px; margin-bottom: 20px; border-radius: 8px; }
         .success { background: #d4edda; color: #155724; }
         .error { background: #f8d7da; color: #721c24; }
 
-        /* Mobile Breakpoint Fixes */
         @media (max-width: 768px) {
             .main-content { 
                 margin-left: 70px !important; 
@@ -187,8 +222,10 @@ if (isset($_POST['save_driver'])) {
                 padding: 20px 10px; 
             }
             .header h1 { font-size: 1.2rem; }
+            .header-actions { width: 100%; }
+            .search-container { flex: 1; }
             .btn-add { width: 100%; }
-            .modal { align-items: flex-start; } /* Ensures modal starts from top on small screens */
+            .modal { align-items: flex-start; } 
             .modal-content { margin-top: 10px; }
         }
 
@@ -205,14 +242,22 @@ if (isset($_POST['save_driver'])) {
 <div class="main-content">
     <div class="header">
         <h1>Drivers Management</h1>
-        <button class="btn-add" onclick="openAddModal()">+ Register New Driver</button>
+        <div class="header-actions">
+            <div class="search-container">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="searchInput" placeholder="Search by Full Name..." onkeyup="filterTable()">
+            </div>
+            <?php if ($is_admin): ?>
+                <button class="btn-add" onclick="openAddModal()">+ Register New Driver</button>
+            <?php endif; ?>
+        </div>
     </div>
 
     <?php echo $status; ?>
 
     <div class="table-card">
         <div class="table-responsive">
-            <table>
+            <table id="driversTable">
                 <thead>
                     <tr>
                         <th>Photo</th>
@@ -220,7 +265,9 @@ if (isset($_POST['save_driver'])) {
                         <th>Full Name</th>
                         <th>License No.</th>
                         <th>Contact</th>
-                        <th>Actions</th>
+                        <?php if ($is_admin): ?>
+                            <th>Actions</th>
+                        <?php endif; ?>
                     </tr>
                 </thead>
                 <tbody>
@@ -235,19 +282,23 @@ if (isset($_POST['save_driver'])) {
                             echo "<tr>
                                     <td><img src='$display_img' class='driver-thumb' onclick='expandImage(\"$display_img\")'></td>
                                     <td><strong>{$row['driver_id']}</strong></td>
-                                    <td>{$row['full_name']}</td>
+                                    <td class='name-cell'>{$row['full_name']}</td>
                                     <td>{$row['license_no']}</td>
-                                    <td>{$row['contact_no']}</td>
-                                    <td>
+                                    <td>{$row['contact_no']}</td>";
+                            
+                            if ($is_admin) {
+                                echo "<td>
                                         <i class='fa-solid fa-pen-to-square btn-edit' onclick='openEditModal($json_data)'></i>
-                                        <a href='drivers.php?delete={$row['driver_id']}' onclick='return confirmDelete()'>
+                                        <a href='drivers.php{$role_param}&delete={$row['driver_id']}' onclick='return confirmDelete()'>
                                             <i class='fa-solid fa-trash btn-delete'></i>
                                         </a>
-                                    </td>
-                                  </tr>";
+                                      </td>";
+                            }
+                            echo "</tr>";
                         }
                     } else {
-                        echo "<tr><td colspan='6' align='center'>No drivers registered yet.</td></tr>";
+                        $col_span = $is_admin ? 6 : 5;
+                        echo "<tr class='no-data'><td colspan='$col_span' align='center'>No drivers registered yet.</td></tr>";
                     }
                     ?>
                 </tbody>
@@ -263,7 +314,7 @@ if (isset($_POST['save_driver'])) {
             <span onclick="closeModal()" style="cursor:pointer; font-size:24px;">&times;</span>
         </div>
         <div class="modal-body">
-            <form action="drivers.php" method="POST" id="driverForm" enctype="multipart/form-data">
+            <form action="drivers.php<?php echo $role_param; ?>" method="POST" id="driverForm" enctype="multipart/form-data">
                 <input type="hidden" name="is_edit" id="is_edit" value="0">
                 <input type="hidden" name="old_image" id="old_image" value="default-avatar.png">
                 <div class="preview-container">
@@ -292,14 +343,39 @@ if (isset($_POST['save_driver'])) {
     const lightbox = document.getElementById("imageLightbox");
     const expandedImg = document.getElementById("expandedImg");
 
+    // Table Filtering Function
+    function filterTable() {
+        const input = document.getElementById("searchInput");
+        const filter = input.value.toLowerCase();
+        const table = document.getElementById("driversTable");
+        const tr = table.getElementsByTagName("tr");
+
+        for (let i = 1; i < tr.length; i++) {
+            // Skips the "No data" row if it exists
+            if(tr[i].classList.contains('no-data')) continue;
+
+            const nameCell = tr[i].getElementsByClassName("name-cell")[0];
+            if (nameCell) {
+                const txtValue = nameCell.textContent || nameCell.innerText;
+                if (txtValue.toLowerCase().indexOf(filter) > -1) {
+                    tr[i].style.display = "";
+                } else {
+                    tr[i].style.display = "none";
+                }
+            }
+        }
+    }
+
     function expandImage(src) {
         expandedImg.src = src;
         lightbox.style.display = 'flex';
     }
 
-    fileInput.onchange = evt => {
-        const [file] = fileInput.files;
-        if (file) { imgPreview.src = URL.createObjectURL(file); }
+    if(fileInput) {
+        fileInput.onchange = evt => {
+            const [file] = fileInput.files;
+            if (file) { imgPreview.src = URL.createObjectURL(file); }
+        }
     }
 
     function openAddModal() {
@@ -309,7 +385,7 @@ if (isset($_POST['save_driver'])) {
         document.getElementById("submitBtn").innerText = "Register Driver";
         document.getElementById("is_edit").value = "0";
         document.getElementById("form_driver_id").readOnly = false;
-        modal.style.display = "flex"; /* Updated to flex */
+        modal.style.display = "flex";
     }
 
     function openEditModal(data) {
@@ -324,7 +400,7 @@ if (isset($_POST['save_driver'])) {
         document.getElementById("form_contact_no").value = data.contact_no;
         document.getElementById("form_address").value = data.address;
         imgPreview.src = "uploads/" + (data.profile_image || "default-avatar.png");
-        modal.style.display = "flex"; /* Updated to flex */
+        modal.style.display = "flex";
     }
 
     function closeModal() { modal.style.display = "none"; }

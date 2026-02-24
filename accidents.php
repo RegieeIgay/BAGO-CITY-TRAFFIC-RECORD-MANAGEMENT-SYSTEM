@@ -62,125 +62,89 @@ if (isset($_POST['save_accident'])) {
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
         body { background-color: #f4f7f6; display: flex; }
 
-        /* FIXED RESPONSIVE LAYOUT ENGINE */
         .main-content { 
-            flex: 1;
-            margin-left: 260px; 
-            padding: 40px 20px; 
-            min-height: 100vh; 
-            transition: all 0.3s ease; 
+            flex: 1; margin-left: 260px; padding: 40px 20px; 
+            min-height: 100vh; transition: all 0.3s ease; 
             width: calc(100% - 260px);
         }
 
-        body.sidebar-is-collapsed .main-content {
-            margin-left: 70px;
-            width: calc(100% - 70px);
-        }
+        body.sidebar-is-collapsed .main-content { margin-left: 70px; width: calc(100% - 70px); }
 
         .header { 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            margin-bottom: 30px; 
-            flex-wrap: wrap; 
-            gap: 15px;
+            display: flex; justify-content: space-between; align-items: center; 
+            margin-bottom: 30px; flex-wrap: wrap; gap: 15px;
         }
 
         .header h1 { font-size: 1.5rem; color: #003366; font-weight: 700; }
 
+        /* --- SEARCH BAR STYLES --- */
+        .search-container {
+            flex: 1;
+            max-width: 400px;
+            position: relative;
+        }
+        .search-container input {
+            width: 100%;
+            padding: 12px 15px 12px 40px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            outline: none;
+            font-size: 14px;
+            transition: 0.3s;
+        }
+        .search-container input:focus { border-color: #003366; box-shadow: 0 0 5px rgba(0,51,102,0.1); }
+        .search-container i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #888;
+        }
+
         .btn-add { 
-            background: #003366; 
-            color: white; 
-            padding: 12px 24px; 
-            border: none; 
-            border-radius: 8px; 
-            cursor: pointer; 
-            font-weight: 600; 
-            transition: 0.3s; 
-            white-space: nowrap;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            background: #003366; color: white; padding: 12px 24px; border: none; 
+            border-radius: 8px; cursor: pointer; font-weight: 600; 
+            transition: 0.3s; white-space: nowrap; display: flex; align-items: center; gap: 8px;
         }
         .btn-add:hover { background: #0059b3; transform: translateY(-2px); }
 
-        /* Table Card and Responsive Container */
-        .table-card { 
-            background: #fff; 
-            padding: 20px; 
-            border-radius: 15px; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05); 
-        }
-
-        .table-responsive {
-            width: 100%;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-
+        .table-card { background: #fff; padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
         table { width: 100%; border-collapse: collapse; min-width: 900px; }
         th, td { padding: 15px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px; }
         th { background: #f9f9f9; color: #666; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
 
         .btn-edit { color: #0059b3; cursor: pointer; font-size: 18px; background: none; border: none; transition: 0.2s; }
-        .btn-edit:hover { color: #003366; transform: scale(1.1); }
         .btn-delete { color: #e74c3c; font-size: 18px; margin-left: 10px; transition: 0.2s; }
-        .btn-delete:hover { color: #c0392b; transform: scale(1.1); }
 
-        /* Severity Badges */
         .severity-badge { padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
         .minor { background: #e3f2fd; color: #0059b3; }
         .major { background: #fff3e0; color: #ef6c00; }
         .fatal { background: #ffebee; color: #c62828; }
 
-        /* MODAL DESIGN */
         .modal { 
-            display: none; 
-            position: fixed; 
-            z-index: 2000; 
-            left: 0; 
-            top: 0; 
-            width: 100%; 
-            height: 100%; 
-            background: rgba(0,0,0,0.5); 
-            backdrop-filter: blur(4px);
-            align-items: center; 
-            justify-content: center;
-            padding: 20px;
+            display: none; position: fixed; z-index: 2000; left: 0; top: 0; 
+            width: 100%; height: 100%; background: rgba(0,0,0,0.5); 
+            backdrop-filter: blur(4px); align-items: center; justify-content: center; padding: 20px;
         }
-
-        .modal-content { 
-            background: #fff; 
-            margin: auto; 
-            border-radius: 15px; 
-            width: 100%; 
-            max-width: 500px; 
-            overflow: hidden; 
-            animation: slideDown 0.3s ease; 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-        }
-        
+        .modal-content { background: #fff; border-radius: 15px; width: 100%; max-width: 500px; animation: slideDown 0.3s ease; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
         .modal-header { background-color: #003366; padding: 20px; color: white; display: flex; justify-content: space-between; align-items: center; }
         .modal-body { padding: 25px; }
         .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; margin-bottom: 5px; font-size: 14px; font-weight: 600; color: #444; }
-        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; outline: none; font-size: 14px; transition: 0.3s; }
-        .btn-save { background: #003366; color: white; width: 100%; padding: 14px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 16px; transition: 0.3s; margin-top: 10px; }
-        .btn-save:hover { background: #0059b3; }
+        .form-group label { display: block; margin-bottom: 5px; font-size: 14px; font-weight: 600; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; }
+        .btn-save { background: #003366; color: white; width: 100%; padding: 14px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; margin-top: 10px; }
 
-        /* Alerts */
-        .alert { padding: 15px; margin-bottom: 20px; border-radius: 8px; display: flex; align-items: center; gap: 10px; font-weight: 500; }
+        .alert { padding: 15px; margin-bottom: 20px; border-radius: 8px; display: flex; align-items: center; gap: 10px; }
         .success { background: #d4edda; color: #155724; border-left: 5px solid #28a745; }
         .error { background: #f8d7da; color: #721c24; border-left: 5px solid #dc3545; }
 
         @media (max-width: 768px) {
-            .main-content { margin-left: 70px !important; width: calc(100% - 70px); padding: 20px 10px; }
-            .header h1 { font-size: 1.2rem; }
-            .btn-add { width: 100%; justify-content: center; }
-            .modal { align-items: flex-start; overflow-y: auto; }
-            .modal-content { margin-top: 20px; }
+            .main-content { margin-left: 70px !important; width: calc(100% - 70px); }
+            .header { flex-direction: column; align-items: stretch; }
+            .search-container { max-width: 100%; order: 2; }
+            .btn-add { order: 3; }
         }
-
         @keyframes slideDown { from { transform: translateY(-30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     </style>
 </head>
@@ -189,6 +153,12 @@ if (isset($_POST['save_accident'])) {
 <div class="main-content">
     <div class="header">
         <h1>Accident Records</h1>
+
+        <div class="search-container">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="driverSearch" placeholder="Search by driver's name..." onkeyup="filterAccidents()">
+        </div>
+
         <button class="btn-add" onclick="openAddModal()">
             <i class="fa-solid fa-plus"></i> Report New Accident
         </button>
@@ -198,7 +168,7 @@ if (isset($_POST['save_accident'])) {
 
     <div class="table-card">
         <div class="table-responsive">
-            <table>
+            <table id="accidentsTable">
                 <thead>
                     <tr>
                         <th>Driver Name</th>
@@ -221,8 +191,9 @@ if (isset($_POST['save_accident'])) {
                         while($row = $result->fetch_assoc()) {
                             $json_data = htmlspecialchars(json_encode($row), ENT_QUOTES, 'UTF-8');
                             $severity_class = strtolower($row['severity']);
+                            $driver_display = $row['full_name'] ?? 'Unassigned';
                             echo "<tr>
-                                    <td>" . ($row['full_name'] ?? '<span style="color:#999">Unassigned</span>') . "</td>
+                                    <td class='driver-col'>$driver_display</td>
                                     <td><strong>{$row['plate_no']}</strong></td>
                                     <td>{$row['location']}</td>
                                     <td><span class='severity-badge $severity_class'>{$row['severity']}</span></td>
@@ -236,7 +207,7 @@ if (isset($_POST['save_accident'])) {
                                   </tr>";
                         }
                     } else {
-                        echo "<tr><td colspan='6' align='center' style='padding: 40px; color: #999;'>No accident records found in the system.</td></tr>";
+                        echo "<tr id='no-data-row'><td colspan='6' align='center' style='padding: 40px; color: #999;'>No accident records found.</td></tr>";
                     }
                     ?>
                 </tbody>
@@ -255,7 +226,6 @@ if (isset($_POST['save_accident'])) {
             <form action="accidents.php" method="POST" id="accidentForm">
                 <input type="hidden" name="is_edit" id="is_edit" value="0">
                 <input type="hidden" name="accident_id" id="form_accident_id">
-
                 <div class="form-group">
                     <label>Driver Involved</label>
                     <select name="driver_id" id="form_driver_id" required>
@@ -268,7 +238,6 @@ if (isset($_POST['save_accident'])) {
                         ?>
                     </select>
                 </div>
-
                 <div class="form-group">
                     <label>Vehicle Plate No.</label>
                     <select name="plate_no" id="form_plate_no" required>
@@ -281,12 +250,10 @@ if (isset($_POST['save_accident'])) {
                         ?>
                     </select>
                 </div>
-
                 <div class="form-group">
                     <label>Location</label>
                     <input type="text" name="location" id="form_location" required placeholder="Street / Brgy Name">
                 </div>
-
                 <div style="display: flex; gap: 15px;">
                     <div class="form-group" style="flex: 1;">
                         <label>Severity</label>
@@ -301,12 +268,10 @@ if (isset($_POST['save_accident'])) {
                         <input type="datetime-local" name="accident_date" id="form_accident_date" required>
                     </div>
                 </div>
-
                 <div class="form-group">
                     <label>Brief Description</label>
                     <textarea name="description" id="form_description" rows="3" placeholder="Additional details..."></textarea>
                 </div>
-
                 <button type="submit" name="save_accident" id="submitBtn" class="btn-save">Submit Report</button>
             </form>
         </div>
@@ -317,16 +282,30 @@ if (isset($_POST['save_accident'])) {
     const modal = document.getElementById("accidentModal");
     const form = document.getElementById("accidentForm");
 
+    // --- SEARCH FILTER FUNCTION ---
+    function filterAccidents() {
+        const input = document.getElementById("driverSearch");
+        const filter = input.value.toLowerCase();
+        const table = document.getElementById("accidentsTable");
+        const tr = table.getElementsByTagName("tr");
+
+        for (let i = 1; i < tr.length; i++) {
+            const td = tr[i].getElementsByClassName("driver-col")[0];
+            if (td) {
+                const txtValue = td.textContent || td.innerText;
+                tr[i].style.display = txtValue.toLowerCase().indexOf(filter) > -1 ? "" : "none";
+            }
+        }
+    }
+
     function openAddModal() {
         form.reset();
         document.getElementById("modalTitle").innerText = "New Accident Report";
         document.getElementById("submitBtn").innerText = "Submit Report";
         document.getElementById("is_edit").value = "0";
-        
         const now = new Date();
         now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
         document.getElementById("form_accident_date").value = now.toISOString().slice(0, 16);
-        
         modal.style.display = "flex";
     }
 
@@ -334,17 +313,14 @@ if (isset($_POST['save_accident'])) {
         document.getElementById("modalTitle").innerText = "Edit Accident Report";
         document.getElementById("submitBtn").innerText = "Update Report";
         document.getElementById("is_edit").value = "1";
-        
         document.getElementById("form_accident_id").value = data.accident_id;
         document.getElementById("form_driver_id").value = data.driver_id;
         document.getElementById("form_plate_no").value = data.plate_no;
         document.getElementById("form_location").value = data.location;
         document.getElementById("form_severity").value = data.severity;
         document.getElementById("form_description").value = data.description;
-        
         const dateVal = data.accident_date.replace(" ", "T").substring(0, 16);
         document.getElementById("form_accident_date").value = dateVal;
-        
         modal.style.display = "flex";
     }
 

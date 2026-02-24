@@ -25,7 +25,9 @@ if (isset($_POST['login'])) {
             $_SESSION['user_id'] = $user['user_id'];
             $_SESSION['full_name'] = $user['full_name'];
             $_SESSION['role'] = $user['role'];
-            header("Location: index.php");
+            
+            // Added role to the URL redirection
+            header("Location: index.php?role=" . urlencode($user['role']));
             exit();
         } else {
             $error = "Incorrect Username or Password!";
@@ -41,8 +43,11 @@ if (isset($_POST['signup'])) {
     $username  = trim($_POST['signup_username']);
     $password  = $_POST['signup_password'];
     $confirm   = $_POST['confirm_password'];
+    $role      = isset($_POST['role']) ? $_POST['role'] : ""; // Capture role from dropdown
 
-    if ($password !== $confirm) {
+    if (empty($role)) {
+        $error = "Please select a role!";
+    } elseif ($password !== $confirm) {
         $error = "Passwords do not match!";
     } else {
         $check = $conn->prepare("SELECT user_id FROM users WHERE username=?");
@@ -54,12 +59,12 @@ if (isset($_POST['signup'])) {
             $error = "Username already exists!";
         } else {
             $hashed = password_hash($password, PASSWORD_DEFAULT);
-            $stmt = $conn->prepare("INSERT INTO users (full_name, username, password, role) VALUES (?, ?, ?, 'admin')");
-            $stmt->bind_param("sss", $full_name, $username, $hashed);
+            // Updated to bind 4 strings (ssss) including the dynamic $role
+            $stmt = $conn->prepare("INSERT INTO users (full_name, username, password, role) VALUES (?, ?, ?, ?)");
+            $stmt->bind_param("ssss", $full_name, $username, $hashed, $role);
 
             if ($stmt->execute()) {
-                $success = "Admin account created! You can now login.";
-                // Clear inputs on success
+                $success = "Account created successfully! You can now login.";
                 $sign_name = $sign_user = "";
             } else {
                 $error = "Something went wrong during registration.";
@@ -80,10 +85,10 @@ if (isset($_POST['signup'])) {
     <style>
         *{ margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
         body{
-            display: flex; flex-direction: column; height: 100vh; width: 100%; 
+            display: flex; flex-direction: column; min-height: 100vh; width: 100%; 
             justify-content: center; align-items: center;
             background: linear-gradient(to right, #003366, #004080, #0059b3, #0073e6);
-            padding: 20px;
+            padding: 40px 20px;
         }
 
         .system-title {
@@ -141,12 +146,14 @@ if (isset($_POST['signup'])) {
         .form-inner form{ width: 50%; padding: 0 10px; }
         
         .field{ height: 55px; width: 100%; margin-top: 20px; position: relative; }
-        .field input{
+        .field input, .field select{
             height: 100%; width: 100%; padding-left: 15px; padding-right: 45px;
             border-radius: 12px; border: 1px solid lightgrey; font-size: 16px; outline: none;
             transition: all 0.3s ease;
+            background: #fff;
         }
-        .field input:focus{ border-color: #0059b3; box-shadow: inset 0 0 3px rgba(0,89,179,0.2); }
+        .field select { cursor: pointer; appearance: none; }
+        .field input:focus, .field select:focus{ border-color: #0059b3; box-shadow: inset 0 0 3px rgba(0,89,179,0.2); }
 
         .field i {
             position: absolute; right: 15px; top: 50%; transform: translateY(-50%);
@@ -209,6 +216,14 @@ if (isset($_POST['signup'])) {
                 </div>
                 <div class="field">
                     <input type="text" name="signup_username" placeholder="Username" value="<?php echo $sign_user; ?>" required>
+                </div>
+                <div class="field">
+                    <select name="role" required>
+                        <option value="" disabled selected>Select Role</option>
+                        <option value="admin">Admin</option>
+                        <option value="traffic enforcer">Traffic Enforcer</option>
+                    </select>
+                    <i class="fa-solid fa-chevron-down" style="font-size: 12px; pointer-events: none;"></i>
                 </div>
                 <div class="field">
                     <input type="password" name="signup_password" id="sign_pass" placeholder="Password" required>

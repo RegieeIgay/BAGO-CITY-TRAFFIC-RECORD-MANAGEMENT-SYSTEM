@@ -18,29 +18,55 @@ if (session_status() === PHP_SESSION_NONE) {
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
         body { background-color: #f4f7f6; display: flex; }
 
-        /* FIXED RESPONSIVE LAYOUT ENGINE */
         .main-content { 
             flex: 1;
-            margin-left: 260px; /* Sidebar width */
+            margin-left: 260px; 
             padding: 40px 20px; 
             min-height: 100vh; 
             transition: all 0.3s ease; 
             width: calc(100% - 260px);
         }
 
-        /* Sidebar collapse adjustment */
         body.sidebar-is-collapsed .main-content {
             margin-left: 70px;
             width: calc(100% - 70px);
         }
 
         .header { 
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
             margin-bottom: 30px; 
+            flex-wrap: wrap;
+            gap: 20px;
         }
-        .header h1 { font-size: 1.5rem; color: #003366; }
-        .header p { color: #666; font-size: 14px; }
+        .header-text h1 { font-size: 1.5rem; color: #003366; }
+        .header-text p { color: #666; font-size: 14px; }
+
+        /* SEARCH BAR STYLES */
+        .search-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 350px;
+        }
+        .search-wrapper input {
+            width: 100%;
+            padding: 12px 15px 12px 40px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            outline: none;
+            font-size: 14px;
+            transition: 0.3s;
+        }
+        .search-wrapper input:focus { border-color: #003366; box-shadow: 0 0 8px rgba(0,51,102,0.1); }
+        .search-wrapper i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #888;
+        }
         
-        /* Table Card and Responsive Container */
         .table-card { 
             background: #fff; 
             padding: 20px; 
@@ -58,7 +84,6 @@ if (session_status() === PHP_SESSION_NONE) {
         th, td { padding: 15px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px; }
         th { background: #f9f9f9; color: #666; font-size: 12px; text-transform: uppercase; }
 
-        /* Offender Specific Styles */
         .count-badge {
             background: #ffebee;
             color: #c62828;
@@ -85,14 +110,10 @@ if (session_status() === PHP_SESSION_NONE) {
         }
         .btn-view:hover { background: #003366; }
 
-        /* Mobile Breakpoint Fixes */
         @media (max-width: 768px) {
-            .main-content { 
-                margin-left: 70px !important; 
-                width: calc(100% - 70px);
-                padding: 20px 10px; 
-            }
-            .header h1 { font-size: 1.2rem; }
+            .main-content { margin-left: 70px !important; width: calc(100% - 70px); padding: 20px 10px; }
+            .header { flex-direction: column; align-items: flex-start; }
+            .search-wrapper { max-width: 100%; }
         }
     </style>
 </head>
@@ -100,13 +121,20 @@ if (session_status() === PHP_SESSION_NONE) {
 
 <div class="main-content">
     <div class="header">
-        <h1><i class="fa-solid fa-user-slash"></i> Repeat Offenders List</h1>
-        <p>Drivers with 2 or more recorded traffic violations.</p>
+        <div class="header-text">
+            <h1><i class="fa-solid fa-user-slash"></i> Repeat Offenders List</h1>
+            <p>Drivers with 2 or more recorded traffic violations.</p>
+        </div>
+        
+        <div class="search-wrapper">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="offenderSearch" placeholder="Search by driver's name..." onkeyup="filterOffenders()">
+        </div>
     </div>
 
     <div class="table-card">
         <div class="table-responsive">
-            <table>
+            <table id="offendersTable">
                 <thead>
                     <tr>
                         <th>Driver Details</th>
@@ -140,7 +168,7 @@ if (session_status() === PHP_SESSION_NONE) {
                             $risk_class = $is_critical ? 'status-critical' : 'status-warning';
                             
                             echo "<tr>
-                                    <td>
+                                    <td class='driver-name-cell'>
                                         <strong>{$row['full_name']}</strong><br>
                                         <small style='color:#888'>ID: {$row['driver_id']}</small>
                                     </td>
@@ -156,7 +184,7 @@ if (session_status() === PHP_SESSION_NONE) {
                                   </tr>";
                         }
                     } else {
-                        echo "<tr><td colspan='6' align='center'>No repeat offenders found at this time.</td></tr>";
+                        echo "<tr id='no-data'><td colspan='6' align='center'>No repeat offenders found at this time.</td></tr>";
                     }
                     ?>
                 </tbody>
@@ -164,6 +192,32 @@ if (session_status() === PHP_SESSION_NONE) {
         </div>
     </div>
 </div>
+
+<script>
+    function filterOffenders() {
+        // Get the search input value
+        const input = document.getElementById("offenderSearch");
+        const filter = input.value.toLowerCase();
+        const table = document.getElementById("offendersTable");
+        const tr = table.getElementsByTagName("tr");
+
+        // Loop through all table rows (starting from index 1 to skip the header)
+        for (let i = 1; i < tr.length; i++) {
+            // Target the cell containing the driver's name
+            const td = tr[i].getElementsByClassName("driver-name-cell")[0];
+            
+            if (td) {
+                const txtValue = td.textContent || td.innerText;
+                // If the name matches the filter, show the row; otherwise, hide it
+                if (txtValue.toLowerCase().indexOf(filter) > -1) {
+                    tr[i].style.display = "";
+                } else {
+                    tr[i].style.display = "none";
+                }
+            }
+        }
+    }
+</script>
 
 </body>
 </html>
