@@ -18,29 +18,53 @@ $where_sql = "v.violation_date BETWEEN '$start_date 00:00:00' AND '$end_date 23:
     <title>General Violation Reports | BCTRMS</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        /* Base Styles - Matching your Drivers Management Layout */
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
         body { background-color: #f4f7f6; display: flex; }
 
-        .main-content { flex: 1; margin-left: 260px; padding: 40px 20px; width: calc(100% - 260px); transition: 0.3s; }
-        body.sidebar-is-collapsed .main-content { margin-left: 70px; width: calc(100% - 70px); }
+        /* Main Content logic to match drivers.php */
+        .main-content { 
+            flex: 1; 
+            margin-left: 260px; 
+            padding: 40px 20px; 
+            min-height: 100vh; 
+            transition: 0.3s; 
+            width: calc(100% - 260px); 
+        }
 
-        .header { margin-bottom: 25px; display: flex; justify-content: space-between; align-items: flex-end; }
-        .header h1 { color: #003366; font-size: 24px; }
+        /* Responsive Collapse Logic */
+        body.sidebar-is-collapsed .main-content { 
+            margin-left: 70px; 
+            width: calc(100% - 70px); 
+        }
+
+        /* Header Styling */
+        .header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 30px; 
+            flex-wrap: wrap; 
+            gap: 15px;
+        }
+        .header h1 { font-size: 1.5rem; color: #003366; }
         .header p { color: #666; font-size: 14px; }
 
+        /* Filter Card - Grid approach for responsiveness */
         .filter-card { 
             background: #fff; 
             padding: 25px; 
-            border-radius: 12px; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
+            border-radius: 15px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05); 
             margin-bottom: 30px; 
         }
         .filter-form { 
             display: flex; 
             gap: 20px; 
             align-items: flex-end; 
+            flex-wrap: wrap;
         }
-        .form-group { flex: 1; }
+        .form-group { flex: 1; min-width: 200px; }
         .form-group label { display: block; font-size: 13px; font-weight: 600; color: #555; margin-bottom: 8px; }
         .form-group input { 
             width: 100%; 
@@ -50,26 +74,65 @@ $where_sql = "v.violation_date BETWEEN '$start_date 00:00:00' AND '$end_date 23:
             font-size: 14px;
         }
 
-        .btn-search { background: #003366; color: white; border: none; padding: 11px 25px; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.3s; }
+        /* Button Styling */
+        .btn-search { 
+            background: #003366; 
+            color: white; 
+            border: none; 
+            padding: 11px 25px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-weight: 600; 
+            transition: 0.3s; 
+        }
         .btn-search:hover { background: #0052a3; }
-        .btn-print { background: #27ae60; color: white; border: none; padding: 11px 20px; border-radius: 8px; cursor: pointer; text-align: center; text-decoration: none; font-weight: 600; }
+        .btn-print { 
+            background: #27ae60; 
+            color: white; 
+            border: none; 
+            padding: 11px 20px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            text-decoration: none; 
+            font-weight: 600; 
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
 
-        .report-table-container { background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; min-width: 850px; }
-        th { background: #f8f9fa; color: #666; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; padding: 15px; text-align: left; border-bottom: 2px solid #dee2e6; }
-        td { padding: 15px; border-bottom: 1px solid #eee; font-size: 14px; color: #444; }
-        
+        /* Table Responsiveness - Exactly like drivers.php */
+        .table-card { 
+            background: #fff; 
+            padding: 20px; 
+            border-radius: 15px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05); 
+        }
+        .table-responsive { width: 100%; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; min-width: 900px; }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px; }
+        th { background: #f9f9f9; color: #666; font-size: 12px; text-transform: uppercase; }
+
+        /* Violation Table Specific Tags */
         .driver-info { font-weight: 600; color: #333; }
         .id-sub { display: block; font-size: 11px; color: #888; font-weight: normal; }
-        .violation-tag { font-size: 12px; font-weight: 500; color: #c62828; background: #fff1f0; padding: 4px 10px; border-radius: 4px; display: inline-block; }
+        .violation-tag { font-size: 12px; font-weight: 500; color: #c62828; background: #fff1f0; padding: 4px 10px; border-radius: 4px; display: inline-block; border: 1px solid #ffa39e; }
         .rate-tag { font-weight: 700; color: #27ae60; font-family: 'Courier New', monospace; }
-        .plate-no { font-family: 'Courier New', monospace; font-weight: bold; background: #eee; padding: 2px 6px; border-radius: 4px; }
+        .plate-no { font-family: 'Courier New', monospace; font-weight: bold; background: #eee; padding: 2px 6px; border-radius: 4px; border: 1px solid #ddd; }
 
+        /* Screen Size Adjustments */
+        @media (max-width: 768px) {
+            .main-content { margin-left: 70px; width: calc(100% - 70px); padding: 20px 10px; }
+            .header h1 { font-size: 1.2rem; }
+            .filter-form { flex-direction: column; align-items: stretch; }
+            .btn-search { width: 100%; }
+        }
+
+        /* Print Logic */
         @media print {
             .sidebar, .filter-card, .btn-print, #toggle-btn { display: none !important; }
             .main-content { margin-left: 0 !important; width: 100% !important; padding: 0 !important; }
-            .report-table-container { box-shadow: none; border: 1px solid #eee; }
             body { background: white; }
+            .table-card { box-shadow: none; }
         }
     </style>
 </head>
@@ -78,8 +141,8 @@ $where_sql = "v.violation_date BETWEEN '$start_date 00:00:00' AND '$end_date 23:
 <div class="main-content">
     <div class="header">
         <div>
-            <h1><i class="fa-solid fa-file-lines"></i> General Violation Reports</h1>
-            <p>Showing all records from <strong><?php echo date('M d, Y', strtotime($start_date)); ?></strong> to <strong><?php echo date('M d, Y', strtotime($end_date)); ?></strong></p>
+            <h1><i class="fa-solid fa-file-lines"></i> Violation Reports</h1>
+            <p>Records from <strong><?php echo date('M d, Y', strtotime($start_date)); ?></strong> to <strong><?php echo date('M d, Y', strtotime($end_date)); ?></strong></p>
         </div>
         <a href="javascript:window.print()" class="btn-print"><i class="fa-solid fa-print"></i> Print Report</a>
     </div>
@@ -98,62 +161,62 @@ $where_sql = "v.violation_date BETWEEN '$start_date 00:00:00' AND '$end_date 23:
         </form>
     </div>
 
-    <div class="report-table-container">
-        <table>
-            <thead>
-                <tr>
-                    <th style="width: 15%;">Date & Time</th>
-                    <th style="width: 20%;">Driver Details</th>
-                    <th style="width: 12%;">Plate Number</th>
-                    <th style="width: 20%;">Violation Type</th>
-                    <th style="width: 13%;">Rate (Fine)</th>
-                    <th style="width: 20%;">Recorded By</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php
-                // JOIN with violation_types to get the fine_amount
-                $sql = "SELECT v.*, d.full_name, u.username, vt.fine_amount 
-                        FROM violations v
-                        LEFT JOIN drivers d ON v.driver_id = d.driver_id
-                        LEFT JOIN users u ON v.recorded_by = u.user_id
-                        LEFT JOIN violation_types vt ON v.violation_type = vt.violation_name
-                        WHERE $where_sql
-                        ORDER BY v.violation_date DESC";
-                
-                $result = $conn->query($sql);
+    <div class="table-card">
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 15%;">Date & Time</th>
+                        <th style="width: 20%;">Driver Details</th>
+                        <th style="width: 12%;">Plate Number</th>
+                        <th style="width: 20%;">Violation Type</th>
+                        <th style="width: 13%;">Rate (Fine)</th>
+                        <th style="width: 20%;">Recorded By</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php
+                    $sql = "SELECT v.*, d.full_name, u.username, vt.fine_amount 
+                            FROM violations v
+                            LEFT JOIN drivers d ON v.driver_id = d.driver_id
+                            LEFT JOIN users u ON v.recorded_by = u.user_id
+                            LEFT JOIN violation_types vt ON v.violation_type = vt.violation_name
+                            WHERE $where_sql
+                            ORDER BY v.violation_date DESC";
+                    
+                    $result = $conn->query($sql);
 
-                if ($result && $result->num_rows > 0) {
-                    while($row = $result->fetch_assoc()) {
-                        $formatted_date = date('M d, Y', strtotime($row['violation_date']));
-                        $formatted_time = date('h:i A', strtotime($row['violation_date']));
-                        // Format the rate/fine
-                        $rate = !empty($row['fine_amount']) ? "₱" . number_format($row['fine_amount'], 2) : "N/A";
-                        
-                        echo "<tr>
-                                <td>
-                                    $formatted_date
-                                    <span class='id-sub'>$formatted_time</span>
-                                </td>
-                                <td>
-                                    <span class='driver-info'>" . ($row['full_name'] ?? 'N/A') . "</span>
-                                    <span class='id-sub'>Driver ID: {$row['driver_id']}</span>
-                                </td>
-                                <td><span class='plate-no'>{$row['plate_no']}</span></td>
-                                <td><span class='violation-tag'>{$row['violation_type']}</span></td>
-                                <td><span class='rate-tag'>$rate</span></td>
-                                <td><i class='fa-solid fa-user-check' style='font-size:10px; color:#27ae60;'></i> " . ($row['username'] ?? 'System') . "</td>
-                              </tr>";
+                    if ($result && $result->num_rows > 0) {
+                        while($row = $result->fetch_assoc()) {
+                            $f_date = date('M d, Y', strtotime($row['violation_date']));
+                            $f_time = date('h:i A', strtotime($row['violation_date']));
+                            $rate = !empty($row['fine_amount']) ? "₱" . number_format($row['fine_amount'], 2) : "N/A";
+                            
+                            echo "<tr>
+                                    <td>
+                                        <span class='driver-info'>$f_date</span>
+                                        <span class='id-sub'>$f_time</span>
+                                    </td>
+                                    <td>
+                                        <span class='driver-info'>" . ($row['full_name'] ?? 'N/A') . "</span>
+                                        <span class='id-sub'>ID: {$row['driver_id']}</span>
+                                    </td>
+                                    <td><span class='plate-no'>{$row['plate_no']}</span></td>
+                                    <td><span class='violation-tag'>{$row['violation_type']}</span></td>
+                                    <td><span class='rate-tag'>$rate</span></td>
+                                    <td><i class='fa-solid fa-user-check' style='font-size:10px; color:#27ae60;'></i> " . ($row['username'] ?? 'System') . "</td>
+                                  </tr>";
+                        }
+                    } else {
+                        echo "<tr><td colspan='6' align='center' style='padding:60px; color:#999;'>
+                                <i class='fa-regular fa-calendar-xmark' style='font-size:40px; display:block; margin-bottom:15px; color:#ccc;'></i>
+                                No violations recorded for this time period.
+                              </td></tr>";
                     }
-                } else {
-                    echo "<tr><td colspan='6' align='center' style='padding:60px; color:#999;'>
-                            <i class='fa-regular fa-calendar-xmark' style='font-size:40px; display:block; margin-bottom:15px; color:#ccc;'></i>
-                            No violations recorded for this time period.
-                          </td></tr>";
-                }
-                ?>
-            </tbody>
-        </table>
+                    ?>
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
