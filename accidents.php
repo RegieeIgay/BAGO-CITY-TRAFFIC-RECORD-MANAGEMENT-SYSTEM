@@ -133,25 +133,39 @@ if (isset($_POST['save_accident'])) {
         .major { background: #fff3e0; color: #ef6c00; }
         .fatal { background: #ffebee; color: #c62828; }
 
-        /* Modal Styles */
-        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
+        /* MODAL DESIGN */
+        .modal { 
+            display: none; 
+            position: fixed; 
+            z-index: 2000; 
+            left: 0; 
+            top: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: rgba(0,0,0,0.5); 
+            backdrop-filter: blur(4px);
+            align-items: center; 
+            justify-content: center;
+            padding: 20px;
+        }
+
         .modal-content { 
             background: #fff; 
-            margin: 50px auto; 
+            margin: auto; 
             border-radius: 15px; 
-            width: 90%; 
+            width: 100%; 
             max-width: 500px; 
             overflow: hidden; 
             animation: slideDown 0.3s ease; 
             box-shadow: 0 10px 25px rgba(0,0,0,0.2);
         }
+        
         .modal-header { background-color: #003366; padding: 20px; color: white; display: flex; justify-content: space-between; align-items: center; }
         .modal-body { padding: 25px; }
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; margin-bottom: 5px; font-size: 14px; font-weight: 600; color: #444; }
         .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; outline: none; font-size: 14px; transition: 0.3s; }
-        .form-group input:focus, .form-group select:focus { border-color: #0059b3; box-shadow: 0 0 0 3px rgba(0,89,179,0.1); }
-        .btn-save { background: #003366; color: white; width: 100%; padding: 14px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 16px; transition: 0.3s; }
+        .btn-save { background: #003366; color: white; width: 100%; padding: 14px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 16px; transition: 0.3s; margin-top: 10px; }
         .btn-save:hover { background: #0059b3; }
 
         /* Alerts */
@@ -159,11 +173,12 @@ if (isset($_POST['save_accident'])) {
         .success { background: #d4edda; color: #155724; border-left: 5px solid #28a745; }
         .error { background: #f8d7da; color: #721c24; border-left: 5px solid #dc3545; }
 
-        /* Mobile Breakpoint Fixes */
         @media (max-width: 768px) {
             .main-content { margin-left: 70px !important; width: calc(100% - 70px); padding: 20px 10px; }
             .header h1 { font-size: 1.2rem; }
             .btn-add { width: 100%; justify-content: center; }
+            .modal { align-items: flex-start; overflow-y: auto; }
+            .modal-content { margin-top: 20px; }
         }
 
         @keyframes slideDown { from { transform: translateY(-30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
@@ -289,7 +304,7 @@ if (isset($_POST['save_accident'])) {
 
                 <div class="form-group">
                     <label>Brief Description</label>
-                    <textarea name="description" id="form_description" rows="3" placeholder="Additional details (weather, road conditions, etc.)"></textarea>
+                    <textarea name="description" id="form_description" rows="3" placeholder="Additional details..."></textarea>
                 </div>
 
                 <button type="submit" name="save_accident" id="submitBtn" class="btn-save">Submit Report</button>
@@ -308,12 +323,11 @@ if (isset($_POST['save_accident'])) {
         document.getElementById("submitBtn").innerText = "Submit Report";
         document.getElementById("is_edit").value = "0";
         
-        // Auto-set current date/time
         const now = new Date();
         now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
         document.getElementById("form_accident_date").value = now.toISOString().slice(0, 16);
         
-        modal.style.display = "block";
+        modal.style.display = "flex";
     }
 
     function openEditModal(data) {
@@ -328,11 +342,10 @@ if (isset($_POST['save_accident'])) {
         document.getElementById("form_severity").value = data.severity;
         document.getElementById("form_description").value = data.description;
         
-        // Format date for datetime-local input
         const dateVal = data.accident_date.replace(" ", "T").substring(0, 16);
         document.getElementById("form_accident_date").value = dateVal;
         
-        modal.style.display = "block";
+        modal.style.display = "flex";
     }
 
     function closeModal() { modal.style.display = "none"; }

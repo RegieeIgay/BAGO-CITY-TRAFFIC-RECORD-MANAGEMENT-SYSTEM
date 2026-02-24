@@ -49,16 +49,15 @@ if (!empty($driver_id)) {
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
         body { background-color: #f4f7f6; display: flex; min-height: 100vh; }
         
-        /* Sidebar spacing logic */
+        /* RESPONSIVE LAYOUT ENGINE */
         .main-content { 
             flex: 1; 
             margin-left: 260px; 
             padding: 40px 20px; 
             width: calc(100% - 260px); 
-            transition: 0.3s ease; 
+            transition: all 0.3s ease; 
         }
 
-        /* Collapsed Sidebar logic */
         body.sidebar-is-collapsed .main-content { 
             margin-left: 70px; 
             width: calc(100% - 70px); 
@@ -72,7 +71,7 @@ if (!empty($driver_id)) {
             flex-wrap: wrap;
             gap: 15px;
         }
-        .header h1 { color: #003366; font-size: 1.5rem; }
+        .header h1 { color: #003366; font-size: 1.5rem; font-weight: 700; }
 
         /* Search Section */
         .search-card { 
@@ -83,17 +82,19 @@ if (!empty($driver_id)) {
             margin-bottom: 25px; 
         }
         .search-form { display: flex; gap: 15px; flex-wrap: wrap; }
-        .search-wrapper { flex: 1; position: relative; min-width: 250px; }
+        .search-wrapper { flex: 1; position: relative; min-width: 280px; }
         .search-form input { 
             width: 100%;
             padding: 12px 12px 12px 40px; 
             border: 1px solid #ddd; 
             border-radius: 8px; 
             font-size: 14px; 
+            outline: none;
         }
+        .search-form input:focus { border-color: #003366; }
         .search-icon { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #888; }
         .btn-view { background: #003366; color: white; border: none; padding: 12px 25px; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.3s; }
-        .btn-view:hover { background: #005299; }
+        .btn-view:hover { background: #005299; transform: translateY(-1px); }
 
         /* Profile Card */
         .profile-section { 
@@ -108,61 +109,70 @@ if (!empty($driver_id)) {
             flex-wrap: wrap;
         }
         .driver-avatar { 
-            width: 110px; 
-            height: 110px; 
-            background: #eef2f7; 
+            width: 120px; 
+            height: 120px; 
+            background: #f8f9fa; 
             border-radius: 12px; 
             overflow: hidden; 
-            border: 1px solid #ddd; 
+            border: 2px solid #eee; 
             cursor: zoom-in; 
             flex-shrink: 0;
         }
         .driver-avatar img { width: 100%; height: 100%; object-fit: cover; }
-        .profile-info { flex: 1; min-width: 200px; }
+        
+        .profile-info { flex: 1; min-width: 250px; }
+        .profile-info h2 { color: #333; margin-bottom: 10px; font-size: 1.4rem; }
+        
         .profile-grid { 
             display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); 
-            gap: 20px; 
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); 
+            gap: 15px; 
             margin-top: 15px; 
         }
-        .info-item label { display: block; font-size: 11px; text-transform: uppercase; color: #888; font-weight: 600; }
+        .info-item label { display: block; font-size: 11px; text-transform: uppercase; color: #888; font-weight: 700; margin-bottom: 2px; }
         .info-item span { font-size: 14px; color: #444; font-weight: 600; }
 
-        /* Table Responsiveness */
+        /* Table Responsive Container */
         .table-card { 
             background: #fff; 
             padding: 20px; 
             border-radius: 15px; 
             box-shadow: 0 4px 6px rgba(0,0,0,0.05); 
         }
-        .table-responsive { width: 100%; overflow-x: auto; }
+        .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
         table { width: 100%; border-collapse: collapse; min-width: 900px; }
         th, td { padding: 15px; text-align: left; border-bottom: 1px solid #eee; }
         th { background: #f9f9f9; color: #666; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
         
-        /* Severity Tags */
-        .severity-tag { font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 4px; display: inline-block; text-transform: uppercase; }
+        /* Badges */
+        .severity-tag { font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 4px; display: inline-block; text-transform: uppercase; }
         .sev-minor { color: #1976d2; background: #e3f2fd; border: 1px solid #bbdefb; }
         .sev-major { color: #f57c00; background: #fff3e0; border: 1px solid #ffe0b2; }
         .sev-fatal { color: #c62828; background: #fff1f0; border: 1px solid #ffa39e; }
         .plate-no { font-family: 'Courier New', monospace; font-weight: bold; background: #eee; padding: 2px 6px; border-radius: 4px; border: 1px solid #ddd; }
 
-        /* Modal */
-        #img-modal { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); align-items: center; justify-content: center; cursor: zoom-out; }
-        #img-modal img { max-width: 90%; max-height: 90%; border-radius: 10px; animation: zoom 0.3s; }
-        @keyframes zoom { from {transform: scale(0.8)} to {transform: scale(1)} }
+        /* Image Modal */
+        #img-modal { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); align-items: center; justify-content: center; cursor: zoom-out; }
+        #img-modal img { max-width: 90%; max-height: 90%; border-radius: 8px; box-shadow: 0 0 20px rgba(0,0,0,0.5); transition: 0.3s; }
 
-        /* Responsive Breakpoints */
+        /* Empty State */
+        .empty-state { text-align: center; padding: 60px 20px; color: #999; background: #fff; border-radius: 15px; }
+        .empty-state i { font-size: 50px; color: #ddd; margin-bottom: 15px; }
+
+        /* Mobile Adjustments */
         @media (max-width: 768px) {
-            .main-content { margin-left: 70px; width: calc(100% - 70px); padding: 20px 15px; }
+            .main-content { margin-left: 70px !important; width: calc(100% - 70px); padding: 20px 10px; }
+            .header h1 { font-size: 1.2rem; }
             .profile-section { flex-direction: column; align-items: center; text-align: center; }
             .btn-view { width: 100%; }
+            .search-wrapper { min-width: 100%; }
         }
 
         @media print { 
             .sidebar, .search-card, .btn-print, #toggle-btn, #img-modal { display: none !important; } 
             .main-content { margin-left: 0 !important; width: 100% !important; padding: 0 !important; } 
-            .profile-section { box-shadow: none; border: 1px solid #eee; }
+            .profile-section { box-shadow: none; border: 1px solid #eee; break-inside: avoid; }
+            body { background: white; }
         }
     </style>
 </head>
@@ -174,9 +184,9 @@ if (!empty($driver_id)) {
 
 <div class="main-content">
     <div class="header">
-        <h1><i class="fa-solid fa-car-burst"></i> Individual Accident History</h1>
+        <h1><i class="fa-solid fa-file-invoice"></i> Individual Accident History</h1>
         <?php if ($driver_data): ?>
-            <a href="javascript:window.print()" class="btn-print" style="background: #27ae60; color: white; padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 8px;">
+            <a href="javascript:window.print()" class="btn-print" style="background: #27ae60; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 8px;">
                 <i class="fa-solid fa-print"></i> Print Records
             </a>
         <?php endif; ?>
@@ -188,7 +198,7 @@ if (!empty($driver_id)) {
                 <i class="fa-solid fa-magnifying-glass search-icon"></i>
                 <input type="text" name="driver_id" id="driver_search" 
                        list="drivers_list" 
-                       placeholder="Search drivers with accident records..." 
+                       placeholder="Enter Name or ID of driver with accidents..." 
                        value="<?php echo htmlspecialchars($driver_id); ?>" 
                        autocomplete="off" required>
                 
@@ -200,7 +210,7 @@ if (!empty($driver_id)) {
                     <?php endforeach; ?>
                 </datalist>
             </div>
-            <button type="submit" class="btn-view">Generate Report</button>
+            <button type="submit" class="btn-view">Search Records</button>
         </form>
     </div>
 
@@ -219,9 +229,9 @@ if (!empty($driver_id)) {
             <div class="profile-info">
                 <h2><?php echo $driver_data['full_name']; ?></h2>
                 <div class="profile-grid">
-                    <div class="info-item"><label>Driver ID</label><span><?php echo $driver_data['driver_id']; ?></span></div>
-                    <div class="info-item"><label>License No.</label><span><?php echo $driver_data['license_no']; ?></span></div>
-                    <div class="info-item"><label>Contact No.</label><span><?php echo $driver_data['contact_no'] ?: 'N/A'; ?></span></div>
+                    <div class="info-item"><label>System ID</label><span>#<?php echo $driver_data['driver_id']; ?></span></div>
+                    <div class="info-item"><label>License Number</label><span><?php echo $driver_data['license_no']; ?></span></div>
+                    <div class="info-item"><label>Phone Number</label><span><?php echo $driver_data['contact_no'] ?: 'Not Provided'; ?></span></div>
                 </div>
             </div>
         </div>
@@ -235,8 +245,8 @@ if (!empty($driver_id)) {
                             <th style="width: 12%;">Plate No.</th>
                             <th style="width: 18%;">Location</th>
                             <th style="width: 12%;">Severity</th>
-                            <th style="width: 28%;">Description</th>
-                            <th style="width: 15%;">Recorded By</th>
+                            <th style="width: 28%;">Incident Description</th>
+                            <th style="width: 15%;">Encoded By</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -262,12 +272,17 @@ if (!empty($driver_id)) {
                                         <td><span class='plate-no'>{$row['plate_no']}</span></td>
                                         <td>" . htmlspecialchars($row['location']) . "</td>
                                         <td><span class='severity-tag $sev_class'>$sev</span></td>
-                                        <td style='font-size:12px; line-height:1.4; color:#666;'>" . htmlspecialchars($row['description']) . "</td>
-                                        <td><i class='fa-solid fa-user-pen' style='font-size:10px; color:#27ae60;'></i> " . ($row['username'] ?? 'System') . "</td>
+                                        <td style='font-size:12px; line-height:1.5; color:#555;'>" . htmlspecialchars($row['description']) . "</td>
+                                        <td>
+                                            <div style='display:flex; align-items:center; gap:5px; font-size:13px;'>
+                                                <i class='fa-solid fa-user-check' style='color:#27ae60;'></i>
+                                                <span>" . ($row['username'] ?? 'Admin') . "</span>
+                                            </div>
+                                        </td>
                                       </tr>";
                             }
                         } else {
-                            echo "<tr><td colspan='6' align='center' style='padding:50px; color:#999;'>No accident records found.</td></tr>";
+                            echo "<tr><td colspan='6' align='center' style='padding:50px; color:#999;'>No verified accident records found for this driver.</td></tr>";
                         }
                         ?>
                     </tbody>
@@ -275,15 +290,23 @@ if (!empty($driver_id)) {
             </div>
         </div>
     <?php elseif (!empty($driver_id)): ?>
-        <div class="search-card" style="text-align: center; border-left: 5px solid #e74c3c;">
-            <i class="fa-solid fa-circle-exclamation" style="color:#e74c3c; font-size: 24px; display:block; margin-bottom:10px;"></i>
-            No accident records found for: <strong><?php echo htmlspecialchars($driver_id); ?></strong>
+        <div class="empty-state">
+            <i class="fa-solid fa-triangle-exclamation" style="color:#e74c3c;"></i>
+            <h3>No Records Found</h3>
+            <p>We couldn't find any accident history for <strong><?php echo htmlspecialchars($driver_id); ?></strong>.</p>
+        </div>
+    <?php else: ?>
+        <div class="empty-state">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <h3>Search for a Driver</h3>
+            <p>Enter a driver's name or license number above to generate their accident history report.</p>
         </div>
     <?php endif; ?>
 </div>
 
 <script>
     function expandImage(src) {
+        if(src.includes('default-avatar.png')) return; // Don't expand default avatar
         document.getElementById('modal-img').src = src;
         document.getElementById('img-modal').style.display = 'flex';
     }

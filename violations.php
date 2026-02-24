@@ -119,28 +119,44 @@ if (isset($_POST['save_violation'])) {
         .btn-edit { color: #0059b3; cursor: pointer; font-size: 18px; border: none; background: none; }
         .btn-delete { color: #e74c3c; font-size: 18px; margin-left: 10px; }
 
-        /* Modal Styles */
-        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
+        /* FIXED RESPONSIVE MODAL */
+        .modal { 
+            display: none; 
+            position: fixed; 
+            z-index: 2000; 
+            left: 0; 
+            top: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: rgba(0,0,0,0.5); 
+            align-items: center; 
+            justify-content: center;
+            overflow-y: auto; 
+            padding: 20px;
+        }
+
         .modal-content { 
             background: #fff; 
-            margin: 50px auto; 
+            margin: auto; 
             border-radius: 15px; 
-            width: 90%; 
+            width: 100%; 
             max-width: 480px; 
             overflow: hidden; 
             animation: slideDown 0.3s ease; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
         }
+
         .modal-header { background-color: #0059b3; padding: 20px; color: white; display: flex; justify-content: space-between; align-items: center; }
         .modal-body { padding: 25px; }
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; margin-bottom: 5px; font-size: 14px; font-weight: 500; }
         .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; outline: none; font-size: 14px; }
-        .btn-save { background: #0059b3; color: white; width: 100%; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; }
+        .btn-save { background: #0059b3; color: white; width: 100%; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; margin-top: 10px; }
 
         /* Alerts */
         .alert { padding: 15px; margin-bottom: 20px; border-radius: 8px; }
-        .success { background: #d4edda; color: #155724; }
-        .error { background: #f8d7da; color: #721c24; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
 
         @media (max-width: 768px) {
             .main-content { 
@@ -150,6 +166,8 @@ if (isset($_POST['save_violation'])) {
             }
             .header h1 { font-size: 1.2rem; }
             .btn-add { width: 100%; }
+            .modal { align-items: flex-start; } 
+            .modal-content { margin-top: 10px; }
         }
 
         @keyframes slideDown { from { transform: translateY(-30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
@@ -287,7 +305,7 @@ if (isset($_POST['save_violation'])) {
         now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
         document.getElementById("form_violation_date").value = now.toISOString().slice(0, 16);
         
-        modal.style.display = "block";
+        modal.style.display = "flex";
     }
 
     function openEditModal(data) {
@@ -300,11 +318,11 @@ if (isset($_POST['save_violation'])) {
         document.getElementById("form_plate_no").value = data.plate_no;
         document.getElementById("form_violation_type").value = data.violation_type;
         
-        // Format date for datetime-local input
+        // Format date for datetime-local input (YYYY-MM-DDTHH:MM)
         const dateVal = data.violation_date.replace(" ", "T").substring(0, 16);
         document.getElementById("form_violation_date").value = dateVal;
         
-        modal.style.display = "block";
+        modal.style.display = "flex";
     }
 
     function closeModal() { modal.style.display = "none"; }

@@ -68,6 +68,7 @@ if (isset($_POST['save_type'])) {
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
         body { background-color: #f4f7f6; display: flex; }
 
+        /* FIXED RESPONSIVE LAYOUT ENGINE */
         .main-content { 
             flex: 1;
             margin-left: 260px; 
@@ -105,6 +106,7 @@ if (isset($_POST['save_type'])) {
             white-space: nowrap;
         }
 
+        /* Table Card and Responsive Container */
         .table-card { 
             background: #fff; 
             padding: 20px; 
@@ -125,16 +127,33 @@ if (isset($_POST['save_type'])) {
         .btn-edit { color: #0059b3; cursor: pointer; font-size: 18px; border: none; background: none; }
         .btn-delete { color: #e74c3c; font-size: 18px; margin-left: 10px; }
 
-        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
+        /* FIXED RESPONSIVE MODAL */
+        .modal { 
+            display: none; 
+            position: fixed; 
+            z-index: 2000; 
+            left: 0; 
+            top: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: rgba(0,0,0,0.5); 
+            align-items: center; 
+            justify-content: center;
+            overflow-y: auto; 
+            padding: 20px;
+        }
+
         .modal-content { 
             background: #fff; 
-            margin: 50px auto; 
+            margin: auto; 
             border-radius: 15px; 
-            width: 90%; 
+            width: 100%; 
             max-width: 450px; 
             overflow: hidden; 
             animation: slideDown 0.3s ease; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
         }
+
         .modal-header { background-color: #0059b3; padding: 20px; color: white; display: flex; justify-content: space-between; align-items: center; }
         .modal-body { padding: 25px; }
         .form-group { margin-bottom: 15px; }
@@ -142,10 +161,12 @@ if (isset($_POST['save_type'])) {
         .form-group input, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; outline: none; }
         .btn-save { background: #0059b3; color: white; width: 100%; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; }
 
+        /* Alerts */
         .alert { padding: 15px; margin-bottom: 20px; border-radius: 8px; }
         .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
         .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
 
+        /* Mobile Breakpoint Fixes */
         @media (max-width: 768px) {
             .main-content { 
                 margin-left: 70px !important; 
@@ -154,6 +175,8 @@ if (isset($_POST['save_type'])) {
             }
             .header h1 { font-size: 1.2rem; }
             .btn-add { width: 100%; }
+            .modal { align-items: flex-start; } 
+            .modal-content { margin-top: 20px; }
         }
 
         @keyframes slideDown { from { transform: translateY(-30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
@@ -247,7 +270,7 @@ if (isset($_POST['save_type'])) {
         document.getElementById("modalTitle").innerText = "New Violation Type";
         document.getElementById("submitBtn").innerText = "Save Violation Type";
         document.getElementById("is_edit").value = "0";
-        modal.style.display = "block";
+        modal.style.display = "flex"; /* Using flex for centering */
     }
 
     function openEditModal(data) {
@@ -260,7 +283,7 @@ if (isset($_POST['save_type'])) {
         document.getElementById("form_fine").value = data.fine_amount;
         document.getElementById("form_desc").value = data.description;
         
-        modal.style.display = "block";
+        modal.style.display = "flex"; /* Using flex for centering */
     }
 
     function closeModal() { modal.style.display = "none"; }

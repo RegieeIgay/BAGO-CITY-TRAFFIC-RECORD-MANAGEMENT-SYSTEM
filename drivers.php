@@ -83,13 +83,44 @@ if (isset($_POST['save_driver'])) {
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
         body { background-color: #f4f7f6; display: flex; }
-        .main-content { flex: 1; margin-left: 260px; padding: 40px 20px; min-height: 100vh; transition: 0.3s; width: calc(100% - 260px); }
+
+        /* FIXED RESPONSIVE LAYOUT ENGINE */
+        .main-content { 
+            flex: 1; 
+            margin-left: 260px; 
+            padding: 40px 20px; 
+            min-height: 100vh; 
+            transition: all 0.3s ease; 
+            width: calc(100% - 260px); 
+        }
+
         body.sidebar-is-collapsed .main-content { margin-left: 70px; width: calc(100% - 70px); }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+
+        .header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 30px; 
+            flex-wrap: wrap; 
+            gap: 15px;
+        }
+
         .header h1 { font-size: 1.5rem; color: #003366; }
-        .btn-add { background: #003366; color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; }
+
+        .btn-add { 
+            background: #003366; 
+            color: white; 
+            padding: 10px 20px; 
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-weight: 600; 
+            transition: 0.3s;
+            white-space: nowrap;
+        }
+
         .table-card { background: #fff; padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        .table-responsive { width: 100%; overflow-x: auto; }
+        .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
         table { width: 100%; border-collapse: collapse; min-width: 900px; }
         th, td { padding: 15px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px; }
         th { background: #f9f9f9; color: #666; font-size: 12px; text-transform: uppercase; }
@@ -99,25 +130,67 @@ if (isset($_POST['save_driver'])) {
         .driver-thumb:hover { transform: scale(1.1); border-color: #0059b3; }
 
         /* Lightbox (Expanded Image) Style */
-        .lightbox { display: none; position: fixed; z-index: 3000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); align-items: center; justify-content: center; cursor: zoom-out; }
+        .lightbox { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); align-items: center; justify-content: center; cursor: zoom-out; }
         .lightbox img { max-width: 90%; max-height: 90%; border-radius: 10px; box-shadow: 0 0 20px rgba(0,0,0,0.5); animation: zoomIn 0.3s ease; }
 
-        /* Registration Modal Style */
+        /* FIXED RESPONSIVE MODAL */
+        .modal { 
+            display: none; 
+            position: fixed; 
+            z-index: 2000; 
+            left: 0; 
+            top: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: rgba(0,0,0,0.5); 
+            align-items: center; 
+            justify-content: center; 
+            overflow-y: auto; 
+            padding: 20px;
+        }
+
+        .modal-content { 
+            background: #fff; 
+            margin: auto; 
+            border-radius: 15px; 
+            width: 100%; 
+            max-width: 450px; 
+            overflow: hidden; 
+            animation: slideDown 0.3s ease; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        .modal-header { background-color: #0059b3; padding: 20px; color: white; display: flex; justify-content: space-between; align-items: center; }
+        .modal-body { padding: 20px; }
+        
         .preview-container { text-align: center; margin-bottom: 15px; }
         #img_preview { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #0059b3; margin-bottom: 5px; }
-        .btn-edit { color: #0059b3; cursor: pointer; font-size: 18px; }
-        .btn-delete { color: #e74c3c; font-size: 18px; margin-left: 10px; }
-        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
-        .modal-content { background: #fff; margin: 30px auto; border-radius: 15px; width: 90%; max-width: 450px; overflow: hidden; animation: slideDown 0.3s ease; }
-        .modal-header { background-color: #0059b3; padding: 20px; color: white; display: flex; justify-content: space-between; align-items: center; }
-        .modal-body { padding: 20px; max-height: 80vh; overflow-y: auto; }
+        
         .form-group { margin-bottom: 12px; }
         .form-group label { display: block; margin-bottom: 5px; font-size: 13px; font-weight: 500; }
-        .form-group input, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; }
-        .btn-save { background: #0059b3; color: white; width: 100%; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; }
+        .form-group input, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; outline: none; }
+        .btn-save { background: #0059b3; color: white; width: 100%; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; margin-top: 10px; }
+
+        .btn-edit { color: #0059b3; cursor: pointer; font-size: 18px; }
+        .btn-delete { color: #e74c3c; font-size: 18px; margin-left: 10px; }
+
+        /* Alerts */
         .alert { padding: 15px; margin-bottom: 20px; border-radius: 8px; }
         .success { background: #d4edda; color: #155724; }
         .error { background: #f8d7da; color: #721c24; }
+
+        /* Mobile Breakpoint Fixes */
+        @media (max-width: 768px) {
+            .main-content { 
+                margin-left: 70px !important; 
+                width: calc(100% - 70px); 
+                padding: 20px 10px; 
+            }
+            .header h1 { font-size: 1.2rem; }
+            .btn-add { width: 100%; }
+            .modal { align-items: flex-start; } /* Ensures modal starts from top on small screens */
+            .modal-content { margin-top: 10px; }
+        }
 
         @keyframes slideDown { from { transform: translateY(-30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         @keyframes zoomIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
@@ -219,13 +292,11 @@ if (isset($_POST['save_driver'])) {
     const lightbox = document.getElementById("imageLightbox");
     const expandedImg = document.getElementById("expandedImg");
 
-    // Feature: Expand Image
     function expandImage(src) {
         expandedImg.src = src;
         lightbox.style.display = 'flex';
     }
 
-    // Image Preview in Form
     fileInput.onchange = evt => {
         const [file] = fileInput.files;
         if (file) { imgPreview.src = URL.createObjectURL(file); }
@@ -238,7 +309,7 @@ if (isset($_POST['save_driver'])) {
         document.getElementById("submitBtn").innerText = "Register Driver";
         document.getElementById("is_edit").value = "0";
         document.getElementById("form_driver_id").readOnly = false;
-        modal.style.display = "block";
+        modal.style.display = "flex"; /* Updated to flex */
     }
 
     function openEditModal(data) {
@@ -253,7 +324,7 @@ if (isset($_POST['save_driver'])) {
         document.getElementById("form_contact_no").value = data.contact_no;
         document.getElementById("form_address").value = data.address;
         imgPreview.src = "uploads/" + (data.profile_image || "default-avatar.png");
-        modal.style.display = "block";
+        modal.style.display = "flex"; /* Updated to flex */
     }
 
     function closeModal() { modal.style.display = "none"; }
