@@ -4,57 +4,48 @@ require_once("db.php");
 
 // 1. Get role from URL for access control
 $user_role = $_GET['role'] ?? 'User';
-$is_admin = (strtolower($user_role) === 'admin');
 $role_param = "?role=" . urlencode($user_role);
 
 $status = "";
 
-// 2. Handle Delete Request - RESTRICTED TO ADMIN
+// 2. Handle Delete Request - RESTRICTION REMOVED
 if (isset($_GET['delete'])) {
-    if (!$is_admin) {
-        $status = "<div class='alert error'>Access Denied: You do not have permission to delete vehicles.</div>";
+    $plate = $_GET['delete'];
+    $stmt = $conn->prepare("DELETE FROM vehicles WHERE plate_no = ?");
+    $stmt->bind_param("s", $plate);
+    
+    if ($stmt->execute()) {
+        $status = "<div class='alert success'>Vehicle deleted successfully!</div>";
     } else {
-        $plate = $_GET['delete'];
-        $stmt = $conn->prepare("DELETE FROM vehicles WHERE plate_no = ?");
-        $stmt->bind_param("s", $plate);
-        
-        if ($stmt->execute()) {
-            $status = "<div class='alert success'>Vehicle deleted successfully!</div>";
-        } else {
-            $status = "<div class='alert error'>Error: Cannot delete vehicle. It may be linked to active violations.</div>";
-        }
+        $status = "<div class='alert error'>Error: Cannot delete vehicle. It may be linked to active violations.</div>";
     }
 }
 
-// 3. Handle Form Submission - RESTRICTED TO ADMIN
+// 3. Handle Form Submission - RESTRICTION REMOVED
 if (isset($_POST['save_vehicle'])) {
-    if (!$is_admin) {
-        $status = "<div class='alert error'>Access Denied: You do not have permission to modify data.</div>";
+    $plate_no = $_POST['plate_no'];
+    $vehicle_type = $_POST['vehicle_type'];
+    $color = $_POST['color'];
+    $engine_no = $_POST['engine_no'];
+    $year_acquired = $_POST['year_acquired'];
+    $driver_id = $_POST['driver_id']; 
+    $is_edit = $_POST['is_edit']; 
+    $old_plate = $_POST['old_plate']; 
+
+    if ($is_edit == "1") {
+        $stmt = $conn->prepare("UPDATE vehicles SET plate_no=?, vehicle_type=?, color=?, engine_no=?, year_acquired=?, driver_id=? WHERE plate_no=?");
+        $stmt->bind_param("sssssss", $plate_no, $vehicle_type, $color, $engine_no, $year_acquired, $driver_id, $old_plate);
+        $msg = "Vehicle updated successfully!";
     } else {
-        $plate_no = $_POST['plate_no'];
-        $vehicle_type = $_POST['vehicle_type'];
-        $color = $_POST['color'];
-        $engine_no = $_POST['engine_no'];
-        $year_acquired = $_POST['year_acquired'];
-        $driver_id = $_POST['driver_id']; 
-        $is_edit = $_POST['is_edit']; 
-        $old_plate = $_POST['old_plate']; 
+        $stmt = $conn->prepare("INSERT INTO vehicles (plate_no, vehicle_type, color, engine_no, year_acquired, driver_id) VALUES (?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param("ssssss", $plate_no, $vehicle_type, $color, $engine_no, $year_acquired, $driver_id);
+        $msg = "New vehicle registered successfully!";
+    }
 
-        if ($is_edit == "1") {
-            $stmt = $conn->prepare("UPDATE vehicles SET plate_no=?, vehicle_type=?, color=?, engine_no=?, year_acquired=?, driver_id=? WHERE plate_no=?");
-            $stmt->bind_param("sssssss", $plate_no, $vehicle_type, $color, $engine_no, $year_acquired, $driver_id, $old_plate);
-            $msg = "Vehicle updated successfully!";
-        } else {
-            $stmt = $conn->prepare("INSERT INTO vehicles (plate_no, vehicle_type, color, engine_no, year_acquired, driver_id) VALUES (?, ?, ?, ?, ?, ?)");
-            $stmt->bind_param("ssssss", $plate_no, $vehicle_type, $color, $engine_no, $year_acquired, $driver_id);
-            $msg = "New vehicle registered successfully!";
-        }
-
-        if ($stmt->execute()) {
-            $status = "<div class='alert success'>$msg</div>";
-        } else {
-            $status = "<div class='alert error'>Error: Operation failed. This plate or engine number might already be registered.</div>";
-        }
+    if ($stmt->execute()) {
+        $status = "<div class='alert success'>$msg</div>";
+    } else {
+        $status = "<div class='alert error'>Error: Operation failed. This plate or engine number might already be registered.</div>";
     }
 }
 ?>
@@ -85,7 +76,6 @@ if (isset($_POST['save_vehicle'])) {
 
         .header h1 { font-size: 1.5rem; color: #003366; }
 
-        /* Search & Actions Layout */
         .header-actions {
             display: flex;
             gap: 15px;
@@ -129,7 +119,6 @@ if (isset($_POST['save_vehicle'])) {
         .btn-edit { color: #0059b3; cursor: pointer; font-size: 18px; }
         .btn-delete { color: #e74c3c; font-size: 18px; margin-left: 10px; }
 
-        /* Modal Styles */
         .modal { 
             display: none; position: fixed; z-index: 9999; left: 0; top: 0; 
             width: 100%; height: 100%; background: rgba(0,0,0,0.5); 
@@ -174,9 +163,7 @@ if (isset($_POST['save_vehicle'])) {
                 <i class="fa-solid fa-magnifying-glass"></i>
                 <input type="text" id="plateSearch" placeholder="Filter by Plate No..." onkeyup="filterVehicles()">
             </div>
-            <?php if ($is_admin): ?>
-                <button class="btn-add" onclick="openAddModal()">+ Register New Vehicle</button>
-            <?php endif; ?>
+            <button class="btn-add" onclick="openAddModal()">+ Register New Vehicle</button>
         </div>
     </div>
 
@@ -193,9 +180,7 @@ if (isset($_POST['save_vehicle'])) {
                         <th>Engine No.</th>
                         <th>Year</th>
                         <th>Assigned Driver</th>
-                        <?php if ($is_admin): ?>
-                            <th>Actions</th>
-                        <?php endif; ?>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -213,21 +198,17 @@ if (isset($_POST['save_vehicle'])) {
                                     <td>{$row['color']}</td>
                                     <td>{$row['engine_no']}</td>
                                     <td>{$row['year_acquired']}</td>
-                                    <td>" . ($row['full_name'] ?? 'Unassigned') . " <small>({$row['driver_id']})</small></td>";
-                            
-                            if ($is_admin) {
-                                echo "<td>
+                                    <td>" . ($row['full_name'] ?? 'Unassigned') . " <small>({$row['driver_id']})</small></td>
+                                    <td>
                                         <i class='fa-solid fa-pen-to-square btn-edit' onclick='openEditModal($json_data)' title='Edit'></i>
                                         <a href='vehicles.php{$role_param}&delete=" . urlencode($row['plate_no']) . "' onclick='return confirmDelete()'>
                                             <i class='fa-solid fa-trash btn-delete' title='Delete'></i>
                                         </a>
-                                    </td>";
-                            }
-                            echo "</tr>";
+                                    </td>
+                                  </tr>";
                         }
                     } else {
-                        $cols = $is_admin ? 7 : 6;
-                        echo "<tr id='noResults'><td colspan='$cols' align='center'>No vehicles registered yet.</td></tr>";
+                        echo "<tr id='noResults'><td colspan='7' align='center'>No vehicles registered yet.</td></tr>";
                     }
                     ?>
                 </tbody>
@@ -296,7 +277,6 @@ if (isset($_POST['save_vehicle'])) {
     const modal = document.getElementById("vehicleModal");
     const vehicleForm = document.getElementById("vehicleForm");
 
-    // FILTER FUNCTION
     function filterVehicles() {
         const input = document.getElementById("plateSearch");
         const filter = input.value.toUpperCase();
@@ -304,7 +284,6 @@ if (isset($_POST['save_vehicle'])) {
         const tr = table.getElementsByTagName("tr");
 
         for (let i = 1; i < tr.length; i++) {
-            // Only search within the first column (Plate No.)
             const plateCell = tr[i].getElementsByClassName("plate-cell")[0];
             if (plateCell) {
                 const txtValue = plateCell.textContent || plateCell.innerText;

@@ -2,69 +2,60 @@
 include('sidebar.php'); 
 require_once("db.php");
 
-// --- PERMISSION CHECK ---
+// --- PERMISSION CHECK REMOVED ---
 $user_role = $_GET['role'] ?? 'User';
-$is_admin = (strtolower($user_role) === 'admin');
 $role_query = "?role=" . urlencode($user_role);
 // ------------------------
 
 $status = "";
 
-// 1. Handle Delete Request (Admin Only)
+// 1. Handle Delete Request - RESTRICTION REMOVED
 if (isset($_GET['delete'])) {
-    if (!$is_admin) {
-        $status = "<div class='alert error'>Access Denied: Only administrators can delete records.</div>";
+    $id = $_GET['delete'];
+    $stmt = $conn->prepare("DELETE FROM violation_types WHERE type_id = ?");
+    $stmt->bind_param("i", $id);
+    
+    if ($stmt->execute()) {
+        $status = "<div class='alert success'>Violation type deleted successfully!</div>";
     } else {
-        $id = $_GET['delete'];
-        $stmt = $conn->prepare("DELETE FROM violation_types WHERE type_id = ?");
-        $stmt->bind_param("i", $id);
-        
-        if ($stmt->execute()) {
-            $status = "<div class='alert success'>Violation type deleted successfully!</div>";
-        } else {
-            $status = "<div class='alert error'>Error: Cannot delete this type. It may be linked to existing violation records.</div>";
-        }
+        $status = "<div class='alert error'>Error: Cannot delete this type. It may be linked to existing violation records.</div>";
     }
 }
 
-// 2. Handle Form Submission (Admin Only)
+// 2. Handle Form Submission - RESTRICTION REMOVED
 if (isset($_POST['save_type'])) {
-    if (!$is_admin) {
-        $status = "<div class='alert error'>Access Denied: You do not have permission to save changes.</div>";
-    } else {
-        $type_id = $_POST['type_id']; 
-        $violation_name = trim($_POST['violation_name']);
-        $fine_amount = $_POST['fine_amount'];
-        $description = $_POST['description'];
-        $is_edit = $_POST['is_edit']; 
+    $type_id = $_POST['type_id']; 
+    $violation_name = trim($_POST['violation_name']);
+    $fine_amount = $_POST['fine_amount'];
+    $description = $_POST['description'];
+    $is_edit = $_POST['is_edit']; 
 
-        if ($is_edit == "1") {
-            $check = $conn->prepare("SELECT type_id FROM violation_types WHERE violation_name = ? AND type_id != ?");
-            $check->bind_param("si", $violation_name, $type_id);
-            $check->execute();
-            
-            if ($check->get_result()->num_rows > 0) {
-                $status = "<div class='alert error'>Error: A violation type with the name '$violation_name' already exists!</div>";
-            } else {
-                $stmt = $conn->prepare("UPDATE violation_types SET violation_name=?, fine_amount=?, description=? WHERE type_id=?");
-                $stmt->bind_param("sdsi", $violation_name, $fine_amount, $description, $type_id);
-                if ($stmt->execute()) {
-                    $status = "<div class='alert success'>Violation type updated successfully!</div>";
-                }
-            }
+    if ($is_edit == "1") {
+        $check = $conn->prepare("SELECT type_id FROM violation_types WHERE violation_name = ? AND type_id != ?");
+        $check->bind_param("si", $violation_name, $type_id);
+        $check->execute();
+        
+        if ($check->get_result()->num_rows > 0) {
+            $status = "<div class='alert error'>Error: A violation type with the name '$violation_name' already exists!</div>";
         } else {
-            $check = $conn->prepare("SELECT type_id FROM violation_types WHERE violation_name = ?");
-            $check->bind_param("s", $violation_name);
-            $check->execute();
-            
-            if ($check->get_result()->num_rows > 0) {
-                $status = "<div class='alert error'>Error: The violation '$violation_name' is already registered!</div>";
-            } else {
-                $stmt = $conn->prepare("INSERT INTO violation_types (violation_name, fine_amount, description) VALUES (?, ?, ?)");
-                $stmt->bind_param("sds", $violation_name, $fine_amount, $description);
-                if ($stmt->execute()) {
-                    $status = "<div class='alert success'>New violation type added successfully!</div>";
-                }
+            $stmt = $conn->prepare("UPDATE violation_types SET violation_name=?, fine_amount=?, description=? WHERE type_id=?");
+            $stmt->bind_param("sdsi", $violation_name, $fine_amount, $description, $type_id);
+            if ($stmt->execute()) {
+                $status = "<div class='alert success'>Violation type updated successfully!</div>";
+            }
+        }
+    } else {
+        $check = $conn->prepare("SELECT type_id FROM violation_types WHERE violation_name = ?");
+        $check->bind_param("s", $violation_name);
+        $check->execute();
+        
+        if ($check->get_result()->num_rows > 0) {
+            $status = "<div class='alert error'>Error: The violation '$violation_name' is already registered!</div>";
+        } else {
+            $stmt = $conn->prepare("INSERT INTO violation_types (violation_name, fine_amount, description) VALUES (?, ?, ?)");
+            $stmt->bind_param("sds", $violation_name, $fine_amount, $description);
+            if ($stmt->execute()) {
+                $status = "<div class='alert success'>New violation type added successfully!</div>";
             }
         }
     }
@@ -97,7 +88,6 @@ if (isset($_POST['save_type'])) {
 
         .header h1 { font-size: 1.5rem; color: #003366; }
 
-        /* Search & Actions Area */
         .header-actions { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
         
         .search-box { position: relative; min-width: 250px; }
@@ -164,9 +154,7 @@ if (isset($_POST['save_type'])) {
                 <i class="fa-solid fa-magnifying-glass"></i>
                 <input type="text" id="typeSearch" placeholder="Search violation name..." onkeyup="filterTypes()">
             </div>
-            <?php if ($is_admin): ?>
             <button class="btn-add" onclick="openAddModal()">+ Add New Type</button>
-            <?php endif; ?>
         </div>
     </div>
 
@@ -180,9 +168,7 @@ if (isset($_POST['save_type'])) {
                         <th>Violation Name</th>
                         <th>Fine Amount</th>
                         <th>Description</th>
-                        <?php if ($is_admin): ?>
                         <th>Actions</th>
-                        <?php endif; ?>
                     </tr>
                 </thead>
                 <tbody>
@@ -195,21 +181,17 @@ if (isset($_POST['save_type'])) {
                             echo "<tr>
                                     <td class='type-name'><strong>{$row['violation_name']}</strong></td>
                                     <td>₱" . number_format($row['fine_amount'], 2) . "</td>
-                                    <td>{$row['description']}</td>";
-                            
-                            if ($is_admin) {
-                                echo "<td>
+                                    <td>{$row['description']}</td>
+                                    <td>
                                         <button class='btn-edit' onclick='openEditModal($json_data)' title='Edit'><i class='fa-solid fa-pen-to-square'></i></button>
                                         <a href='violation_types.php{$role_query}&delete={$row['type_id']}' onclick='return confirmDelete()'>
                                             <i class='fa-solid fa-trash btn-delete' title='Delete'></i>
                                         </a>
-                                    </td>";
-                            }
-                            echo "</tr>";
+                                    </td>
+                                  </tr>";
                         }
                     } else {
-                        $colspan = $is_admin ? 4 : 3;
-                        echo "<tr id='noResults'><td colspan='$colspan' align='center'>No violation types defined yet.</td></tr>";
+                        echo "<tr id='noResults'><td colspan='4' align='center'>No violation types defined yet.</td></tr>";
                     }
                     ?>
                 </tbody>
@@ -251,7 +233,6 @@ if (isset($_POST['save_type'])) {
     const modal = document.getElementById("typeModal");
     const typeForm = document.getElementById("typeForm");
 
-    // SEARCH FILTER FUNCTION
     function filterTypes() {
         const input = document.getElementById("typeSearch");
         const filter = input.value.toUpperCase();

@@ -4,6 +4,7 @@ require_once("db.php");
 
 $error = "";
 $success = "";
+$show_alert = false;
 
 // Capture values to persist in the form if an error occurs
 $login_user = isset($_POST['username']) ? htmlspecialchars($_POST['username']) : "";
@@ -65,6 +66,7 @@ if (isset($_POST['signup'])) {
 
             if ($stmt->execute()) {
                 $success = "Account created successfully! You can now login.";
+                $show_alert = true;
                 $sign_name = $sign_user = "";
             } else {
                 $error = "Something went wrong during registration.";
@@ -257,6 +259,10 @@ if (isset($_POST['signup'])) {
             icon.classList.add('fa-eye');
         }
     }
+
+    <?php if($show_alert): ?>
+        alert("Success! Your account has been created. You can now log in.");
+    <?php endif; ?>
 </script>
 
 </body>
