@@ -6,10 +6,13 @@ require_once("db.php");
 $user_role = $_GET['role'] ?? 'User';
 $role_param = "?role=" . urlencode($user_role);
 
+// Check if user is Admin to restrict actions (Admins usually view-only in this context)
+$is_admin = (strtolower($user_role) === 'admin');
+
 $status = "";
 
-// 2. Handle Delete Request - RESTRICTION REMOVED
-if (isset($_GET['delete'])) {
+// 2. Handle Delete Request - Only if NOT Admin
+if (isset($_GET['delete']) && !$is_admin) {
     $plate = $_GET['delete'];
     $stmt = $conn->prepare("DELETE FROM vehicles WHERE plate_no = ?");
     $stmt->bind_param("s", $plate);
@@ -17,14 +20,14 @@ if (isset($_GET['delete'])) {
     if ($stmt->execute()) {
         $status = "<div class='alert success'>Vehicle deleted successfully!</div>";
     } else {
-        $status = "<div class='alert error'>Error: Cannot delete vehicle. It may be linked to active violations.</div>";
+        $status = "<div class='alert error'>Error: Cannot delete vehicle. It may be linked to active records.</div>";
     }
 }
 
-// 3. Handle Form Submission - RESTRICTION REMOVED
-if (isset($_POST['save_vehicle'])) {
+// 3. Handle Form Submission - Only if NOT Admin
+if (isset($_POST['save_vehicle']) && !$is_admin) {
     $plate_no = $_POST['plate_no'];
-    $vehicle_type = $_POST['vehicle_type'];
+    $vehicle_type_id = $_POST['vehicle_type_id']; 
     $color = $_POST['color'];
     $engine_no = $_POST['engine_no'];
     $year_acquired = $_POST['year_acquired'];
@@ -33,19 +36,19 @@ if (isset($_POST['save_vehicle'])) {
     $old_plate = $_POST['old_plate']; 
 
     if ($is_edit == "1") {
-        $stmt = $conn->prepare("UPDATE vehicles SET plate_no=?, vehicle_type=?, color=?, engine_no=?, year_acquired=?, driver_id=? WHERE plate_no=?");
-        $stmt->bind_param("sssssss", $plate_no, $vehicle_type, $color, $engine_no, $year_acquired, $driver_id, $old_plate);
+        $stmt = $conn->prepare("UPDATE vehicles SET plate_no=?, vehicle_type_id=?, color=?, engine_no=?, year_acquired=?, driver_id=? WHERE plate_no=?");
+        $stmt->bind_param("sisssss", $plate_no, $vehicle_type_id, $color, $engine_no, $year_acquired, $driver_id, $old_plate);
         $msg = "Vehicle updated successfully!";
     } else {
-        $stmt = $conn->prepare("INSERT INTO vehicles (plate_no, vehicle_type, color, engine_no, year_acquired, driver_id) VALUES (?, ?, ?, ?, ?, ?)");
-        $stmt->bind_param("ssssss", $plate_no, $vehicle_type, $color, $engine_no, $year_acquired, $driver_id);
+        $stmt = $conn->prepare("INSERT INTO vehicles (plate_no, vehicle_type_id, color, engine_no, year_acquired, driver_id) VALUES (?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param("sissss", $plate_no, $vehicle_type_id, $color, $engine_no, $year_acquired, $driver_id);
         $msg = "New vehicle registered successfully!";
     }
 
     if ($stmt->execute()) {
         $status = "<div class='alert success'>$msg</div>";
     } else {
-        $status = "<div class='alert error'>Error: Operation failed. This plate or engine number might already be registered.</div>";
+        $status = "<div class='alert error'>Error: Operation failed. Check if Plate/Engine No. is unique.</div>";
     }
 }
 ?>
@@ -62,23 +65,30 @@ if (isset($_POST['save_vehicle'])) {
         body { background-color: #f4f7f6; display: flex; }
 
         .main-content { 
-            flex: 1; margin-left: 260px; padding: 40px 20px; 
-            min-height: 100vh; transition: all 0.3s ease; 
-            width: calc(100% - 260px);
+            flex: 1; 
+            margin-left: 260px; 
+            padding: 40px 20px; 
+            min-height: 100vh; 
+            transition: all 0.3s ease; 
+            width: calc(100% - 260px); 
         }
 
         body.sidebar-is-collapsed .main-content { margin-left: 70px; width: calc(100% - 70px); }
 
         .header { 
-            display: flex; justify-content: space-between; align-items: center; 
-            margin-bottom: 30px; flex-wrap: wrap; gap: 15px;
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 30px; 
+            flex-wrap: wrap; 
+            gap: 15px;
         }
 
         .header h1 { font-size: 1.5rem; color: #003366; }
 
         .header-actions {
             display: flex;
-            gap: 15px;
+            gap: 10px;
             align-items: center;
             flex-wrap: wrap;
         }
@@ -104,52 +114,70 @@ if (isset($_POST['save_vehicle'])) {
         }
 
         .btn-add { 
-            background: #003366; color: white; padding: 10px 20px; 
-            border: none; border-radius: 8px; cursor: pointer; 
-            font-weight: 600; transition: 0.3s; white-space: nowrap;
+            background: #003366; 
+            color: white; 
+            padding: 10px 20px; 
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-weight: 600; 
+            transition: 0.3s;
+            white-space: nowrap;
         }
 
         .table-card { background: #fff; padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
         .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-
-        table { width: 100%; border-collapse: collapse; min-width: 1000px; }
+        table { width: 100%; border-collapse: collapse; min-width: 900px; }
         th, td { padding: 15px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px; }
-        th { background: #f9f9f9; color: #666; font-size: 12px; text-transform: uppercase; }
-
-        .btn-edit { color: #0059b3; cursor: pointer; font-size: 18px; }
-        .btn-delete { color: #e74c3c; font-size: 18px; margin-left: 10px; }
+        th { background: #f9f9f9; color: #666; font-size: 12px; text-transform: uppercase; cursor: pointer; }
+        th:hover { color: #003366; }
 
         .modal { 
-            display: none; position: fixed; z-index: 9999; left: 0; top: 0; 
-            width: 100%; height: 100%; background: rgba(0,0,0,0.5); 
-            align-items: center; justify-content: center; overflow-y: auto; padding: 20px;
+            display: none; 
+            position: fixed; 
+            z-index: 2000; 
+            left: 0; 
+            top: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: rgba(0,0,0,0.5); 
+            align-items: center; 
+            justify-content: center; 
+            padding: 20px;
         }
 
         .modal-content { 
-            background: #fff; margin: auto; border-radius: 15px; width: 100%; 
-            max-width: 500px; animation: slideDown 0.3s ease; box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            background: #fff; 
+            border-radius: 15px; 
+            width: 100%; 
+            max-width: 500px; 
+            overflow: hidden; 
+            animation: slideDown 0.3s ease; 
         }
 
-        .modal-header { background-color: #0059b3; padding: 20px; color: white; display: flex; justify-content: space-between; align-items: center; }
+        .modal-header { background: #0059b3; color: white; padding: 20px; display: flex; justify-content: space-between; align-items: center; }
         .modal-body { padding: 25px; }
-        .form-row { display: flex; gap: 15px; }
-        .form-group { margin-bottom: 15px; flex: 1; }
-        .form-group label { display: block; margin-bottom: 5px; font-size: 14px; font-weight: 500; }
+
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-size: 13px; font-weight: 500; }
         .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; outline: none; }
-        .btn-save { background: #0059b3; color: white; width: 100%; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; }
+        
+        .btn-save { background: #0059b3; color: white; width: 100%; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; margin-top: 10px; }
 
         .alert { padding: 15px; margin-bottom: 20px; border-radius: 8px; }
         .success { background: #d4edda; color: #155724; }
         .error { background: #f8d7da; color: #721c24; }
 
-        @media (max-width: 768px) {
-            .main-content { margin-left: 70px !important; width: calc(100% - 70px); padding: 20px 10px; }
-            .header-actions { width: 100%; flex-direction: column; align-items: stretch; }
-            .search-container { min-width: unset; }
-            .btn-add { width: 100%; }
-            .form-row { flex-direction: column; gap: 0; }
-        }
+        .btn-edit { color: #0059b3; cursor: pointer; font-size: 18px; }
+        .btn-delete { color: #e74c3c; cursor: pointer; font-size: 18px; margin-left: 10px; }
 
+        @media (max-width: 768px) {
+            .main-content { 
+                margin-left: 70px !important; 
+                width: calc(100% - 70px); 
+                padding: 20px 10px; 
+            }
+        }
         @keyframes slideDown { from { transform: translateY(-30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     </style>
 </head>
@@ -161,9 +189,11 @@ if (isset($_POST['save_vehicle'])) {
         <div class="header-actions">
             <div class="search-container">
                 <i class="fa-solid fa-magnifying-glass"></i>
-                <input type="text" id="plateSearch" placeholder="Filter by Plate No..." onkeyup="filterVehicles()">
+                <input type="text" id="searchInput" placeholder="Search Plate or Driver..." onkeyup="filterTable()">
             </div>
-            <button class="btn-add" onclick="openAddModal()">+ Register New Vehicle</button>
+            <?php if (!$is_admin): ?>
+                <button class="btn-add" onclick="openAddModal()">+ Register New Vehicle</button>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -174,41 +204,49 @@ if (isset($_POST['save_vehicle'])) {
             <table id="vehicleTable">
                 <thead>
                     <tr>
-                        <th>Plate No.</th>
-                        <th>Type</th>
-                        <th>Color</th>
-                        <th>Engine No.</th>
-                        <th>Year</th>
-                        <th>Assigned Driver</th>
-                        <th>Actions</th>
+                        <th onclick="sortTable(0)">Plate No. <i class="fa-solid fa-sort"></i></th>
+                        <th onclick="sortTable(1)">Type <i class="fa-solid fa-sort"></i></th>
+                        <th onclick="sortTable(2)">Color <i class="fa-solid fa-sort"></i></th>
+                        <th onclick="sortTable(3)">Engine No. <i class="fa-solid fa-sort"></i></th>
+                        <th onclick="sortTable(4)">Year <i class="fa-solid fa-sort"></i></th>
+                        <th onclick="sortTable(5)">Driver <i class="fa-solid fa-sort"></i></th>
+                        <?php if (!$is_admin): ?>
+                            <th>Actions</th>
+                        <?php endif; ?>
                     </tr>
                 </thead>
                 <tbody>
                     <?php
-                    $sql = "SELECT v.*, d.full_name FROM vehicles v 
+                    $sql = "SELECT v.*, d.full_name, vt.type_name 
+                            FROM vehicles v 
                             LEFT JOIN drivers d ON v.driver_id = d.driver_id 
+                            LEFT JOIN vehicle_types vt ON v.vehicle_type_id = vt.type_id
                             ORDER BY v.plate_no ASC";
                     $result = $conn->query($sql);
                     if ($result && $result->num_rows > 0) {
                         while($row = $result->fetch_assoc()) {
                             $json_data = htmlspecialchars(json_encode($row), ENT_QUOTES, 'UTF-8');
                             echo "<tr>
-                                    <td class='plate-cell'><strong>{$row['plate_no']}</strong></td>
-                                    <td>{$row['vehicle_type']}</td>
+                                    <td class='search-cell'><strong>{$row['plate_no']}</strong></td>
+                                    <td>" . ($row['type_name'] ?? 'N/A') . "</td>
                                     <td>{$row['color']}</td>
                                     <td>{$row['engine_no']}</td>
                                     <td>{$row['year_acquired']}</td>
-                                    <td>" . ($row['full_name'] ?? 'Unassigned') . " <small>({$row['driver_id']})</small></td>
-                                    <td>
-                                        <i class='fa-solid fa-pen-to-square btn-edit' onclick='openEditModal($json_data)' title='Edit'></i>
-                                        <a href='vehicles.php{$role_param}&delete=" . urlencode($row['plate_no']) . "' onclick='return confirmDelete()'>
-                                            <i class='fa-solid fa-trash btn-delete' title='Delete'></i>
+                                    <td class='search-cell'>" . ($row['full_name'] ?? 'Unassigned') . "</td>";
+                            
+                            if (!$is_admin) {
+                                echo "<td>
+                                        <i class='fa-solid fa-pen-to-square btn-edit' onclick='openEditModal($json_data)'></i>
+                                        <a href='vehicles.php{$role_param}&delete=" . urlencode($row['plate_no']) . "' onclick='return confirm(\"Delete this vehicle?\")'>
+                                            <i class='fa-solid fa-trash btn-delete'></i>
                                         </a>
-                                    </td>
-                                  </tr>";
+                                    </td>";
+                            }
+                            echo "</tr>";
                         }
                     } else {
-                        echo "<tr id='noResults'><td colspan='7' align='center'>No vehicles registered yet.</td></tr>";
+                        $colspan = $is_admin ? 6 : 7;
+                        echo "<tr class='no-data'><td colspan='$colspan' align='center'>No vehicles found.</td></tr>";
                     }
                     ?>
                 </tbody>
@@ -233,26 +271,32 @@ if (isset($_POST['save_vehicle'])) {
                     <input type="text" name="plate_no" id="form_plate" required>
                 </div>
 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Vehicle Type</label>
-                        <input type="text" name="vehicle_type" id="form_type" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Color</label>
-                        <input type="text" name="color" id="form_color" required>
-                    </div>
+                <div class="form-group">
+                    <label>Vehicle Type</label>
+                    <select name="vehicle_type_id" id="form_type" required>
+                        <option value="">-- Select Type --</option>
+                        <?php
+                        $v_types = $conn->query("SELECT type_id, type_name FROM vehicle_types ORDER BY type_name ASC");
+                        while($vt = $v_types->fetch_assoc()) {
+                            echo "<option value='{$vt['type_id']}'>{$vt['type_name']}</option>";
+                        }
+                        ?>
+                    </select>
                 </div>
 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Engine No.</label>
-                        <input type="text" name="engine_no" id="form_engine" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Year Acquired</label>
-                        <input type="number" name="year_acquired" id="form_year" required min="1900" max="2099">
-                    </div>
+                <div class="form-group">
+                    <label>Color</label>
+                    <input type="text" name="color" id="form_color" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Engine No.</label>
+                    <input type="text" name="engine_no" id="form_engine" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Year Acquired</label>
+                    <input type="number" name="year_acquired" id="form_year" required>
                 </div>
 
                 <div class="form-group">
@@ -277,21 +321,44 @@ if (isset($_POST['save_vehicle'])) {
     const modal = document.getElementById("vehicleModal");
     const vehicleForm = document.getElementById("vehicleForm");
 
-    function filterVehicles() {
-        const input = document.getElementById("plateSearch");
-        const filter = input.value.toUpperCase();
+    function filterTable() {
+        const input = document.getElementById("searchInput");
+        const filter = input.value.toLowerCase();
         const table = document.getElementById("vehicleTable");
         const tr = table.getElementsByTagName("tr");
 
         for (let i = 1; i < tr.length; i++) {
-            const plateCell = tr[i].getElementsByClassName("plate-cell")[0];
-            if (plateCell) {
-                const txtValue = plateCell.textContent || plateCell.innerText;
-                if (txtValue.toUpperCase().indexOf(filter) > -1) {
-                    tr[i].style.display = "";
-                } else {
-                    tr[i].style.display = "none";
+            if(tr[i].classList.contains('no-data')) continue;
+            let textValue = tr[i].textContent || tr[i].innerText;
+            tr[i].style.display = (textValue.toLowerCase().indexOf(filter) > -1) ? "" : "none";
+        }
+    }
+
+    function sortTable(n) {
+        var table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
+        table = document.getElementById("vehicleTable");
+        switching = true;
+        dir = "asc";
+        while (switching) {
+            switching = false;
+            rows = table.rows;
+            for (i = 1; i < (rows.length - 1); i++) {
+                if(rows[i].classList.contains('no-data')) continue;
+                shouldSwitch = false;
+                x = rows[i].getElementsByTagName("TD")[n];
+                y = rows[i + 1].getElementsByTagName("TD")[n];
+                if (dir == "asc") {
+                    if (x.innerText.toLowerCase() > y.innerText.toLowerCase()) { shouldSwitch = true; break; }
+                } else if (dir == "desc") {
+                    if (x.innerText.toLowerCase() < y.innerText.toLowerCase()) { shouldSwitch = true; break; }
                 }
+            }
+            if (shouldSwitch) {
+                rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+                switching = true;
+                switchcount++;
+            } else {
+                if (switchcount == 0 && dir == "asc") { dir = "desc"; switching = true; }
             }
         }
     }
@@ -299,16 +366,18 @@ if (isset($_POST['save_vehicle'])) {
     function openAddModal() {
         vehicleForm.reset();
         document.getElementById("modalTitle").innerText = "New Vehicle";
+        document.getElementById("submitBtn").innerText = "Save Vehicle";
         document.getElementById("is_edit").value = "0";
         modal.style.display = "flex";
     }
 
     function openEditModal(data) {
         document.getElementById("modalTitle").innerText = "Edit Vehicle";
+        document.getElementById("submitBtn").innerText = "Update Vehicle";
         document.getElementById("is_edit").value = "1";
         document.getElementById("old_plate").value = data.plate_no;
         document.getElementById("form_plate").value = data.plate_no;
-        document.getElementById("form_type").value = data.vehicle_type;
+        document.getElementById("form_type").value = data.vehicle_type_id; 
         document.getElementById("form_color").value = data.color;
         document.getElementById("form_engine").value = data.engine_no;
         document.getElementById("form_year").value = data.year_acquired;
@@ -317,8 +386,7 @@ if (isset($_POST['save_vehicle'])) {
     }
 
     function closeModal() { modal.style.display = "none"; }
-    function confirmDelete() { return confirm("Are you sure you want to delete this vehicle?"); }
-    window.onclick = function(event) { if (event.target == modal) { closeModal(); } }
+    window.onclick = function(e) { if (e.target == modal) closeModal(); }
 </script>
 
 </body>

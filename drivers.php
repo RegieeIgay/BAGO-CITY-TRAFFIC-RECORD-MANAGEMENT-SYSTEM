@@ -6,6 +6,9 @@ require_once("db.php");
 $user_role = $_GET['role'] ?? 'User';
 $role_param = "?role=" . urlencode($user_role);
 
+// Check if user is Admin to restrict actions
+$is_admin = (strtolower($user_role) === 'admin');
+
 $status = "";
 $upload_dir = "uploads/";
 
@@ -13,8 +16,8 @@ if (!is_dir($upload_dir)) {
     mkdir($upload_dir, 0777, true);
 }
 
-// 1. Handle Delete Request - RESTRICTION REMOVED
-if (isset($_GET['delete'])) {
+// 1. Handle Delete Request - Only if NOT Admin
+if (isset($_GET['delete']) && !$is_admin) {
     $id = $_GET['delete'];
     $img_stmt = $conn->prepare("SELECT profile_image FROM drivers WHERE driver_id = ?");
     $img_stmt->bind_param("s", $id);
@@ -34,8 +37,8 @@ if (isset($_GET['delete'])) {
     }
 }
 
-// 2. Handle Form Submission - RESTRICTION REMOVED
-if (isset($_POST['save_driver'])) {
+// 2. Handle Form Submission - Only if NOT Admin
+if (isset($_POST['save_driver']) && !$is_admin) {
     $driver_id = $_POST['driver_id'];
     $full_name = $_POST['full_name'];
     $license_no = $_POST['license_no'];
@@ -151,7 +154,7 @@ if (isset($_POST['save_driver'])) {
 
         .table-card { background: #fff; padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
         .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-        table { width: 100%; border-collapse: collapse; min-width: 900px; }
+        table { width: 100%; border-collapse: collapse; min-width: 800px; }
         th, td { padding: 15px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px; }
         th { background: #f9f9f9; color: #666; font-size: 12px; text-transform: uppercase; }
         
@@ -211,14 +214,7 @@ if (isset($_POST['save_driver'])) {
                 width: calc(100% - 70px); 
                 padding: 20px 10px; 
             }
-            .header h1 { font-size: 1.2rem; }
-            .header-actions { width: 100%; }
-            .search-container { flex: 1; }
-            .btn-add { width: 100%; }
-            .modal { align-items: flex-start; } 
-            .modal-content { margin-top: 10px; }
         }
-
         @keyframes slideDown { from { transform: translateY(-30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         @keyframes zoomIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
     </style>
@@ -237,7 +233,9 @@ if (isset($_POST['save_driver'])) {
                 <i class="fa-solid fa-magnifying-glass"></i>
                 <input type="text" id="searchInput" placeholder="Search by Full Name..." onkeyup="filterTable()">
             </div>
-            <button class="btn-add" onclick="openAddModal()">+ Register New Driver</button>
+            <?php if (!$is_admin): ?>
+                <button class="btn-add" onclick="openAddModal()">+ Register New Driver</button>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -249,11 +247,13 @@ if (isset($_POST['save_driver'])) {
                 <thead>
                     <tr>
                         <th>Photo</th>
-                        <th>Driver ID</th>
-                        <th>Full Name</th>
-                        <th>License No.</th>
-                        <th>Contact</th>
-                        <th>Actions</th>
+                        <th onclick="sortTable(1)" style="cursor:pointer">Driver ID <i class="fa-solid fa-sort"></i></th>
+                        <th onclick="sortTable(2)" style="cursor:pointer">Full Name <i class="fa-solid fa-sort"></i></th>
+                        <th onclick="sortTable(3)" style="cursor:pointer">License No. <i class="fa-solid fa-sort"></i></th>
+                        <th onclick="sortTable(4)" style="cursor:pointer">Contact <i class="fa-solid fa-sort"></i></th>
+                        <?php if (!$is_admin): ?>
+                            <th>Actions</th>
+                        <?php endif; ?>
                     </tr>
                 </thead>
                 <tbody>
@@ -270,17 +270,22 @@ if (isset($_POST['save_driver'])) {
                                     <td><strong>{$row['driver_id']}</strong></td>
                                     <td class='name-cell'>{$row['full_name']}</td>
                                     <td>{$row['license_no']}</td>
-                                    <td>{$row['contact_no']}</td>
-                                    <td>
+                                    <td>{$row['contact_no']}</td>";
+                            
+                            if (!$is_admin) {
+                                echo "<td>
                                         <i class='fa-solid fa-pen-to-square btn-edit' onclick='openEditModal($json_data)'></i>
                                         <a href='drivers.php{$role_param}&delete={$row['driver_id']}' onclick='return confirmDelete()'>
                                             <i class='fa-solid fa-trash btn-delete'></i>
                                         </a>
-                                    </td>
-                                  </tr>";
+                                    </td>";
+                            }
+                            
+                            echo "</tr>";
                         }
                     } else {
-                        echo "<tr class='no-data'><td colspan='6' align='center'>No drivers registered yet.</td></tr>";
+                        $colspan = $is_admin ? 5 : 6;
+                        echo "<tr class='no-data'><td colspan='$colspan' align='center'>No drivers registered yet.</td></tr>";
                     }
                     ?>
                 </tbody>
@@ -336,11 +341,36 @@ if (isset($_POST['save_driver'])) {
             const nameCell = tr[i].getElementsByClassName("name-cell")[0];
             if (nameCell) {
                 const txtValue = nameCell.textContent || nameCell.innerText;
-                if (txtValue.toLowerCase().indexOf(filter) > -1) {
-                    tr[i].style.display = "";
-                } else {
-                    tr[i].style.display = "none";
+                tr[i].style.display = (txtValue.toLowerCase().indexOf(filter) > -1) ? "" : "none";
+            }
+        }
+    }
+
+    function sortTable(n) {
+        var table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
+        table = document.getElementById("driversTable");
+        switching = true;
+        dir = "asc";
+        while (switching) {
+            switching = false;
+            rows = table.rows;
+            for (i = 1; i < (rows.length - 1); i++) {
+                if(rows[i].classList.contains('no-data')) continue;
+                shouldSwitch = false;
+                x = rows[i].getElementsByTagName("TD")[n];
+                y = rows[i + 1].getElementsByTagName("TD")[n];
+                if (dir == "asc") {
+                    if (x.innerText.toLowerCase() > y.innerText.toLowerCase()) { shouldSwitch = true; break; }
+                } else if (dir == "desc") {
+                    if (x.innerText.toLowerCase() < y.innerText.toLowerCase()) { shouldSwitch = true; break; }
                 }
+            }
+            if (shouldSwitch) {
+                rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+                switching = true;
+                switchcount++;
+            } else {
+                if (switchcount == 0 && dir == "asc") { dir = "desc"; switching = true; }
             }
         }
     }

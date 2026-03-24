@@ -22,7 +22,11 @@ if (isset($_POST['login'])) {
     $result = $stmt->get_result();
 
     if ($user = $result->fetch_assoc()) {
-        if (password_verify($password, $user['password'])) {
+        // CHECK IF ACCOUNT IS DISABLED
+        if (isset($user['status']) && $user['status'] === 'Disabled') {
+            $error = "This account has been disabled. Please contact the administrator.";
+        } 
+        elseif (password_verify($password, $user['password'])) {
             $_SESSION['user_id'] = $user['user_id'];
             $_SESSION['full_name'] = $user['full_name'];
             $_SESSION['role'] = $user['role'];
@@ -44,7 +48,7 @@ if (isset($_POST['signup'])) {
     $username  = trim($_POST['signup_username']);
     $password  = $_POST['signup_password'];
     $confirm   = $_POST['confirm_password'];
-    $role      = isset($_POST['role']) ? $_POST['role'] : ""; // Capture role from dropdown
+    $role      = isset($_POST['role']) ? $_POST['role'] : ""; 
 
     if (empty($role)) {
         $error = "Please select a role!";
@@ -60,9 +64,11 @@ if (isset($_POST['signup'])) {
             $error = "Username already exists!";
         } else {
             $hashed = password_hash($password, PASSWORD_DEFAULT);
-            // Updated to bind 4 strings (ssss) including the dynamic $role
-            $stmt = $conn->prepare("INSERT INTO users (full_name, username, password, role) VALUES (?, ?, ?, ?)");
-            $stmt->bind_param("ssss", $full_name, $username, $hashed, $role);
+            $default_status = "Active";
+            
+            // Updated to include status in the registration
+            $stmt = $conn->prepare("INSERT INTO users (full_name, username, password, role, status) VALUES (?, ?, ?, ?, ?)");
+            $stmt->bind_param("sssss", $full_name, $username, $hashed, $role, $default_status);
 
             if ($stmt->execute()) {
                 $success = "Account created successfully! You can now login.";

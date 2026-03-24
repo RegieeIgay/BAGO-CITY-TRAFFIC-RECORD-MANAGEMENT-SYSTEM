@@ -6,10 +6,17 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// 1. Get role from URL for access control
+$user_role = $_GET['role'] ?? 'User';
+$role_param = "?role=" . urlencode($user_role);
+
+// Check if user is Admin to restrict actions
+$is_admin = (strtolower($user_role) === 'admin');
+
 $status = "";
 
-// 1. Handle Delete Request
-if (isset($_GET['delete'])) {
+// 2. Handle Delete Request - Only if NOT Admin
+if (isset($_GET['delete']) && !$is_admin) {
     $a_id = $_GET['delete'];
     $stmt = $conn->prepare("DELETE FROM accidents WHERE accident_id = ?");
     $stmt->bind_param("i", $a_id);
@@ -21,8 +28,8 @@ if (isset($_GET['delete'])) {
     }
 }
 
-// 2. Handle Form Submission
-if (isset($_POST['save_accident'])) {
+// 3. Handle Form Submission - Only if NOT Admin
+if (isset($_POST['save_accident']) && !$is_admin) {
     $driver_id = $_POST['driver_id'];
     $plate_no = $_POST['plate_no'];
     $location = $_POST['location'];
@@ -61,90 +68,38 @@ if (isset($_POST['save_accident'])) {
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
         body { background-color: #f4f7f6; display: flex; }
-
-        .main-content { 
-            flex: 1; margin-left: 260px; padding: 40px 20px; 
-            min-height: 100vh; transition: all 0.3s ease; 
-            width: calc(100% - 260px);
-        }
-
+        .main-content { flex: 1; margin-left: 260px; padding: 40px 20px; min-height: 100vh; transition: all 0.3s ease; width: calc(100% - 260px); }
         body.sidebar-is-collapsed .main-content { margin-left: 70px; width: calc(100% - 70px); }
-
-        .header { 
-            display: flex; justify-content: space-between; align-items: center; 
-            margin-bottom: 30px; flex-wrap: wrap; gap: 15px;
-        }
-
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; flex-wrap: wrap; gap: 15px; }
         .header h1 { font-size: 1.5rem; color: #003366; font-weight: 700; }
-
-        /* --- SEARCH BAR STYLES --- */
-        .search-container {
-            flex: 1;
-            max-width: 400px;
-            position: relative;
-        }
-        .search-container input {
-            width: 100%;
-            padding: 12px 15px 12px 40px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            outline: none;
-            font-size: 14px;
-            transition: 0.3s;
-        }
-        .search-container input:focus { border-color: #003366; box-shadow: 0 0 5px rgba(0,51,102,0.1); }
-        .search-container i {
-            position: absolute;
-            left: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #888;
-        }
-
-        .btn-add { 
-            background: #003366; color: white; padding: 12px 24px; border: none; 
-            border-radius: 8px; cursor: pointer; font-weight: 600; 
-            transition: 0.3s; white-space: nowrap; display: flex; align-items: center; gap: 8px;
-        }
+        .search-container { flex: 1; max-width: 400px; position: relative; }
+        .search-container input { width: 100%; padding: 12px 15px 12px 40px; border: 1px solid #ddd; border-radius: 8px; outline: none; font-size: 14px; }
+        .search-container i { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #888; }
+        .btn-add { background: #003366; color: white; padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.3s; white-space: nowrap; display: flex; align-items: center; gap: 8px; }
         .btn-add:hover { background: #0059b3; transform: translateY(-2px); }
-
         .table-card { background: #fff; padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .table-responsive { width: 100%; overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; min-width: 900px; }
         th, td { padding: 15px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px; }
-        th { background: #f9f9f9; color: #666; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
-
-        .btn-edit { color: #0059b3; cursor: pointer; font-size: 18px; background: none; border: none; transition: 0.2s; }
-        .btn-delete { color: #e74c3c; font-size: 18px; margin-left: 10px; transition: 0.2s; }
-
+        th { background: #f9f9f9; color: #666; font-size: 12px; text-transform: uppercase; cursor: pointer; transition: 0.2s; }
+        th:hover { color: #003366; background: #f1f1f1; }
+        .btn-edit { color: #0059b3; cursor: pointer; font-size: 18px; background: none; border: none; }
+        .btn-delete { color: #e74c3c; font-size: 18px; margin-left: 10px; }
         .severity-badge { padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
         .minor { background: #e3f2fd; color: #0059b3; }
         .major { background: #fff3e0; color: #ef6c00; }
         .fatal { background: #ffebee; color: #c62828; }
-
-        .modal { 
-            display: none; position: fixed; z-index: 2000; left: 0; top: 0; 
-            width: 100%; height: 100%; background: rgba(0,0,0,0.5); 
-            backdrop-filter: blur(4px); align-items: center; justify-content: center; padding: 20px;
-        }
-        .modal-content { background: #fff; border-radius: 15px; width: 100%; max-width: 500px; animation: slideDown 0.3s ease; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
-        .modal-header { background-color: #003366; padding: 20px; color: white; display: flex; justify-content: space-between; align-items: center; }
+        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); align-items: center; justify-content: center; padding: 20px; }
+        .modal-content { background: #fff; border-radius: 15px; width: 100%; max-width: 500px; animation: slideDown 0.3s ease; }
+        .modal-header { background-color: #003366; padding: 20px; color: white; display: flex; justify-content: space-between; align-items: center; border-radius: 15px 15px 0 0; }
         .modal-body { padding: 25px; }
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; margin-bottom: 5px; font-size: 14px; font-weight: 600; }
         .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; }
-        .btn-save { background: #003366; color: white; width: 100%; padding: 14px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; margin-top: 10px; }
-
+        .btn-save { background: #003366; color: white; width: 100%; padding: 14px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; }
         .alert { padding: 15px; margin-bottom: 20px; border-radius: 8px; display: flex; align-items: center; gap: 10px; }
         .success { background: #d4edda; color: #155724; border-left: 5px solid #28a745; }
         .error { background: #f8d7da; color: #721c24; border-left: 5px solid #dc3545; }
-
-        @media (max-width: 768px) {
-            .main-content { margin-left: 70px !important; width: calc(100% - 70px); }
-            .header { flex-direction: column; align-items: stretch; }
-            .search-container { max-width: 100%; order: 2; }
-            .btn-add { order: 3; }
-        }
         @keyframes slideDown { from { transform: translateY(-30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     </style>
 </head>
@@ -159,9 +114,11 @@ if (isset($_POST['save_accident'])) {
             <input type="text" id="driverSearch" placeholder="Search by driver's name..." onkeyup="filterAccidents()">
         </div>
 
+        <?php if (!$is_admin): ?>
         <button class="btn-add" onclick="openAddModal()">
             <i class="fa-solid fa-plus"></i> Report New Accident
         </button>
+        <?php endif; ?>
     </div>
 
     <?php echo $status; ?>
@@ -171,21 +128,21 @@ if (isset($_POST['save_accident'])) {
             <table id="accidentsTable">
                 <thead>
                     <tr>
-                        <th>Driver Name</th>
-                        <th>Plate No.</th>
-                        <th>Location</th>
-                        <th>Severity</th>
-                        <th>Date & Time</th>
+                        <th onclick="sortTable(0)">Driver Name <i class="fa-solid fa-sort"></i></th>
+                        <th onclick="sortTable(1)">Plate No. <i class="fa-solid fa-sort"></i></th>
+                        <th onclick="sortTable(2)">Location <i class="fa-solid fa-sort"></i></th>
+                        <th onclick="sortTable(3)">Severity <i class="fa-solid fa-sort"></i></th>
+                        <th onclick="sortTable(4)">Date & Time <i class="fa-solid fa-sort"></i></th>
+                        <?php if (!$is_admin): ?>
                         <th>Actions</th>
+                        <?php endif; ?>
                     </tr>
                 </thead>
                 <tbody>
                     <?php
-                    $sql = "SELECT a.*, d.full_name 
-                            FROM accidents a 
+                    $sql = "SELECT a.*, d.full_name FROM accidents a 
                             LEFT JOIN drivers d ON a.driver_id = d.driver_id 
                             ORDER BY a.accident_id DESC";
-                    
                     $result = $conn->query($sql);
                     if ($result && $result->num_rows > 0) {
                         while($row = $result->fetch_assoc()) {
@@ -197,17 +154,21 @@ if (isset($_POST['save_accident'])) {
                                     <td><strong>{$row['plate_no']}</strong></td>
                                     <td>{$row['location']}</td>
                                     <td><span class='severity-badge $severity_class'>{$row['severity']}</span></td>
-                                    <td>" . date('M d, Y | h:i A', strtotime($row['accident_date'])) . "</td>
-                                    <td>
+                                    <td>" . date('M d, Y | h:i A', strtotime($row['accident_date'])) . "</td>";
+                            
+                            if (!$is_admin) {
+                                echo "<td>
                                         <button class='btn-edit' onclick='openEditModal($json_data)' title='Edit'><i class='fa-solid fa-pen-to-square'></i></button>
-                                        <a href='accidents.php?delete={$row['accident_id']}' class='btn-delete' title='Delete' onclick='return confirm(\"Are you sure you want to delete this record?\")'>
+                                        <a href='accidents.php{$role_param}&delete={$row['accident_id']}' class='btn-delete' title='Delete' onclick='return confirm(\"Are you sure?\")'>
                                             <i class='fa-solid fa-trash'></i>
                                         </a>
-                                    </td>
-                                  </tr>";
+                                    </td>";
+                            }
+                            echo "</tr>";
                         }
                     } else {
-                        echo "<tr id='no-data-row'><td colspan='6' align='center' style='padding: 40px; color: #999;'>No accident records found.</td></tr>";
+                        $colspan = $is_admin ? 5 : 6;
+                        echo "<tr id='no-data-row'><td colspan='$colspan' align='center' style='padding: 40px; color: #999;'>No records found.</td></tr>";
                     }
                     ?>
                 </tbody>
@@ -223,7 +184,7 @@ if (isset($_POST['save_accident'])) {
             <span onclick="closeModal()" style="cursor:pointer; font-size:24px;"><i class="fa-solid fa-xmark"></i></span>
         </div>
         <div class="modal-body">
-            <form action="accidents.php" method="POST" id="accidentForm">
+            <form action="accidents.php<?php echo $role_param; ?>" method="POST" id="accidentForm">
                 <input type="hidden" name="is_edit" id="is_edit" value="0">
                 <input type="hidden" name="accident_id" id="form_accident_id">
                 <div class="form-group">
@@ -270,7 +231,7 @@ if (isset($_POST['save_accident'])) {
                 </div>
                 <div class="form-group">
                     <label>Brief Description</label>
-                    <textarea name="description" id="form_description" rows="3" placeholder="Additional details..."></textarea>
+                    <textarea name="description" id="form_description" rows="3"></textarea>
                 </div>
                 <button type="submit" name="save_accident" id="submitBtn" class="btn-save">Submit Report</button>
             </form>
@@ -282,13 +243,11 @@ if (isset($_POST['save_accident'])) {
     const modal = document.getElementById("accidentModal");
     const form = document.getElementById("accidentForm");
 
-    // --- SEARCH FILTER FUNCTION ---
     function filterAccidents() {
         const input = document.getElementById("driverSearch");
         const filter = input.value.toLowerCase();
         const table = document.getElementById("accidentsTable");
         const tr = table.getElementsByTagName("tr");
-
         for (let i = 1; i < tr.length; i++) {
             const td = tr[i].getElementsByClassName("driver-col")[0];
             if (td) {
@@ -298,14 +257,40 @@ if (isset($_POST['save_accident'])) {
         }
     }
 
+    function sortTable(n) {
+        let table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
+        table = document.getElementById("accidentsTable");
+        switching = true;
+        dir = "asc";
+        while (switching) {
+            switching = false;
+            rows = table.rows;
+            for (i = 1; i < (rows.length - 1); i++) {
+                if(rows[i].id === 'no-data-row') continue;
+                shouldSwitch = false;
+                x = rows[i].getElementsByTagName("TD")[n];
+                y = rows[i + 1].getElementsByTagName("TD")[n];
+                if (dir == "asc") {
+                    if (x.innerText.toLowerCase() > y.innerText.toLowerCase()) { shouldSwitch = true; break; }
+                } else if (dir == "desc") {
+                    if (x.innerText.toLowerCase() < y.innerText.toLowerCase()) { shouldSwitch = true; break; }
+                }
+            }
+            if (shouldSwitch) {
+                rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+                switching = true;
+                switchcount++;
+            } else {
+                if (switchcount == 0 && dir == "asc") { dir = "desc"; switching = true; }
+            }
+        }
+    }
+
     function openAddModal() {
         form.reset();
         document.getElementById("modalTitle").innerText = "New Accident Report";
         document.getElementById("submitBtn").innerText = "Submit Report";
         document.getElementById("is_edit").value = "0";
-        const now = new Date();
-        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-        document.getElementById("form_accident_date").value = now.toISOString().slice(0, 16);
         modal.style.display = "flex";
     }
 

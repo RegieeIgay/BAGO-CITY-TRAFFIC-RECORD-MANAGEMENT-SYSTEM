@@ -10,7 +10,6 @@ $user_role = $_SESSION['role'] ?? 'User';
 $role_query = "?role=" . urlencode($user_role);
 ?>
 <style>
-    /* ... (CSS remains exactly the same as your original) ... */
     :root {
         --sidebar-width: 260px;
         --sidebar-collapsed-width: 70px;
@@ -213,6 +212,9 @@ $role_query = "?role=" . urlencode($user_role);
         <a href="vehicles.php<?php echo $role_query; ?>" class="<?php echo ($current_page == 'vehicles.php') ? 'active-link' : ''; ?>">
             <i class="fa-solid fa-car"></i> <span>Vehicles</span>
         </a>
+        <a href="vehicle_types.php<?php echo $role_query; ?>" class="<?php echo ($current_page == 'vehicle_types.php') ? 'active-link' : ''; ?>">
+            <i class="fa-solid fa-truck-pickup"></i> <span>Vehicle Types</span>
+        </a>
         <a href="violation_types.php<?php echo $role_query; ?>" class="<?php echo ($current_page == 'violation_types.php') ? 'active-link' : ''; ?>">
             <i class="fa-solid fa-list-check"></i> <span>Violation Types</span>
         </a>
@@ -227,6 +229,21 @@ $role_query = "?role=" . urlencode($user_role);
         <a href="offenders.php<?php echo $role_query; ?>" class="<?php echo ($current_page == 'offenders.php') ? 'active-link' : ''; ?>">
             <i class="fa-solid fa-user-slash"></i> <span>Repeat Offenders</span>
         </a>
+
+        <div class="menu-label">Impoundment</div>
+        <a href="impounded_vehicles.php<?php echo $role_query; ?>" class="<?php echo ($current_page == 'impounded_vehicles.php') ? 'active-link' : ''; ?>">
+            <i class="fa-solid fa-car-on"></i> <span>Impounded</span>
+        </a>
+        <a href="released_vehicles.php<?php echo $role_query; ?>" class="<?php echo ($current_page == 'released_vehicles.php') ? 'active-link' : ''; ?>">
+            <i class="fa-solid fa-calendar-check"></i> <span>Released</span>
+        </a>
+
+       <?php if (strtolower($user_role) === 'admin'): ?>
+            <div class="menu-label">Management</div>
+            <a href="enforcers.php<?php echo $role_query; ?>" class="<?php echo ($current_page == 'enforcers.php') ? 'active-link' : ''; ?>">
+                <i class="fa-solid fa-user-shield"></i> <span>Enforcers</span>
+            </a>
+        <?php endif; ?>
 
         <div class="menu-label">System</div>
         <div class="dropdown-btn" onclick="toggleElement('report-dropdown', 'report-chevron')">
@@ -251,6 +268,15 @@ $role_query = "?role=" . urlencode($user_role);
             <div class="nested-container" id="acc-nested">
                 <a href="all_accident_reports.php<?php echo $role_query; ?>" class="<?php echo ($current_page == 'all_accident_reports.php') ? 'active-link' : ''; ?>">Main Reports</a>
                 <a href="accident_individual.php<?php echo $role_query; ?>" class="<?php echo ($current_page == 'accident_individual.php') ? 'active-link' : ''; ?>">Individual Reports</a>
+            </div>
+
+            <div class="nested-btn" onclick="toggleElement('imp-nested', 'imp-chevron')">
+                <i class="fa-solid fa-warehouse"></i> <span>Impoundment</span>
+                <i class="fa-solid fa-chevron-down chevron" id="imp-chevron"></i>
+            </div>
+            <div class="nested-container" id="imp-nested">
+                <a href="impounded_reports.php<?php echo $role_query; ?>" class="<?php echo ($current_page == 'impounded_reports.php') ? 'active-link' : ''; ?>">Impounded Vehicles</a>
+                <a href="released_reports.php<?php echo $role_query; ?>" class="<?php echo ($current_page == 'released_reports.php') ? 'active-link' : ''; ?>">Released Vehicles</a>
             </div>
         </div>
         
@@ -295,7 +321,11 @@ $role_query = "?role=" . urlencode($user_role);
         }
 
         const currentPage = "<?php echo $current_page; ?>";
-        const reportPages = ['all_violation_reports.php', 'violation_individual.php', 'all_accident_reports.php', 'accident_individual.php'];
+        const reportPages = [
+            'all_violation_reports.php', 'violation_individual.php', 
+            'all_accident_reports.php', 'accident_individual.php',
+            'impounded_reports.php', 'released_reports.php'
+        ];
         
         if (reportPages.includes(currentPage)) {
             document.getElementById('report-dropdown').classList.add('show-dropdown');
@@ -307,6 +337,9 @@ $role_query = "?role=" . urlencode($user_role);
             } else if (currentPage.includes('accident')) {
                 document.getElementById('acc-nested').classList.add('show-dropdown');
                 document.getElementById('acc-chevron').classList.add('rotate-chevron');
+            } else if (currentPage.includes('impounded') || currentPage.includes('released')) {
+                document.getElementById('imp-nested').classList.add('show-dropdown');
+                document.getElementById('imp-chevron').classList.add('rotate-chevron');
             }
         }
     }
