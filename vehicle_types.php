@@ -169,7 +169,7 @@ if (isset($_POST['save_type']) && !$is_admin) {
                 <thead>
                     <tr>
                         <!-- <th onclick="sortTable(0)">ID <i class="fa-solid fa-sort"></i></th> -->
-                        <th onclick="sortTable(1)">Type Name <i class="fa-solid fa-sort"></i></th>
+                        <th onclick="sortTable(1)">Vehicle Type Name <i class="fa-solid fa-sort"></i></th>
                         <th onclick="sortTable(2)">Description <i class="fa-solid fa-sort"></i></th>
                         <?php if (!$is_admin): ?>
                             <th>Actions</th>

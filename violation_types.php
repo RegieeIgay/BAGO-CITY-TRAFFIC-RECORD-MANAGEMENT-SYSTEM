@@ -2,59 +2,86 @@
 include('sidebar.php'); 
 require_once("db.php");
 
-// 1. Get role from URL for access control
+// 1. Setup role parameters for navigation
 $user_role = $_GET['role'] ?? 'User';
 $role_param = "?role=" . urlencode($user_role);
 
-// Check if user is Admin to restrict actions (matching vehicles.php logic)
+// RESTRICTION LOGIC: Check if the user is an Admin
 $is_admin = (strtolower($user_role) === 'admin');
 
 $status = "";
 
-// 2. Handle Delete Request - Only if NOT Admin
-if (isset($_GET['delete']) && !$is_admin) {
-    $type_id = $_GET['delete'];
-    
-    // Check if type is in use before deleting (Good practice for BCTRMS)
-    $check_stmt = $conn->prepare("SELECT COUNT(*) FROM vehicles WHERE vehicle_type_id = ?");
-    $check_stmt->bind_param("i", $type_id);
-    $check_stmt->execute();
-    $check_result = $check_stmt->get_result()->fetch_row();
-
-    if ($check_result[0] > 0) {
-        $status = "<div class='alert error'>Error: Cannot delete. This type is currently assigned to registered vehicles.</div>";
+// 2. Handle Delete Request - RESTRICTED IF ADMIN
+if (isset($_GET['delete'])) {
+    if ($is_admin) {
+        $status = "<div class='alert error'>Access Denied: Admin accounts cannot delete violation types.</div>";
     } else {
-        $stmt = $conn->prepare("DELETE FROM vehicle_types WHERE type_id = ?");
-        $stmt->bind_param("i", $type_id);
-        if ($stmt->execute()) {
-            $status = "<div class='alert success'>Vehicle type deleted successfully!</div>";
+        $id = $_GET['delete'];
+        
+        // Safety Check: Check 'violations' table to see if this type is in use
+        // Based on your database screenshot, the column is named 'violation_id'
+        $check_stmt = $conn->prepare("SELECT COUNT(*) FROM violations WHERE violation_id = ?");
+        $check_stmt->bind_param("i", $id);
+        $check_stmt->execute();
+        $check_result = $check_stmt->get_result()->fetch_row();
+
+        if ($check_result[0] > 0) {
+            $status = "<div class='alert error'>Error: Cannot delete. This violation type is linked to existing violation records.</div>";
         } else {
-            $status = "<div class='alert error'>Error: Operation failed.</div>";
+            // If not linked, proceed with deletion
+            $stmt = $conn->prepare("DELETE FROM violation_types WHERE type_id = ?");
+            $stmt->bind_param("i", $id);
+            if ($stmt->execute()) {
+                $status = "<div class='alert success'>Violation type deleted successfully!</div>";
+            } else {
+                $status = "<div class='alert error'>Error: Operation failed.</div>";
+            }
         }
     }
 }
 
-// 3. Handle Form Submission - Only if NOT Admin
-if (isset($_POST['save_type']) && !$is_admin) {
-    $type_name = $_POST['type_name'];
-    $description = $_POST['description'];
-    $is_edit = $_POST['is_edit']; 
-    $type_id = $_POST['type_id']; 
-
-    if ($is_edit == "1") {
-        $stmt = $conn->prepare("UPDATE vehicle_types SET type_name=?, description=? WHERE type_id=?");
-        $stmt->bind_param("ssi", $type_name, $description, $type_id);
-        $msg = "Vehicle type updated successfully!";
+// 3. Handle Form Submission (Add/Edit) - RESTRICTED IF ADMIN
+if (isset($_POST['save_type'])) {
+    if ($is_admin) {
+        $status = "<div class='alert error'>Access Denied: Admin accounts cannot add or edit violation types.</div>";
     } else {
-        $stmt = $conn->prepare("INSERT INTO vehicle_types (type_name, description) VALUES (?, ?)");
-        $stmt->bind_param("ss", $type_name, $description);
-        $msg = "New vehicle type added successfully!";
-    }
+        $type_id = $_POST['type_id']; 
+        $violation_name = trim($_POST['violation_name']);
+        $fine_amount = $_POST['fine_amount'];
+        $description = $_POST['description'];
+        $is_edit = $_POST['is_edit']; 
 
-    if ($stmt->execute()) {
-        $status = "<div class='alert success'>$msg</div>";
-    } else {
-        $status = "<div class='alert error'>Error: Operation failed. Type name may already exist.</div>";
+        if ($is_edit == "1") {
+            // Check for duplicates excluding current ID
+            $check = $conn->prepare("SELECT type_id FROM violation_types WHERE violation_name = ? AND type_id != ?");
+            $check->bind_param("si", $violation_name, $type_id);
+            $check->execute();
+            
+            if ($check->get_result()->num_rows > 0) {
+                $status = "<div class='alert error'>Error: A violation with the name '$violation_name' already exists!</div>";
+            } else {
+                $stmt = $conn->prepare("UPDATE violation_types SET violation_name=?, fine_amount=?, description=? WHERE type_id=?");
+                $stmt->bind_param("sdsi", $violation_name, $fine_amount, $description, $type_id);
+                if ($stmt->execute()) {
+                    $status = "<div class='alert success'>Violation type updated successfully!</div>";
+                }
+            }
+        } else {
+            // Check for duplicates
+            $check = $conn->prepare("SELECT type_id FROM violation_types WHERE violation_name = ?");
+            $check->bind_param("s", $violation_name);
+            $check->execute();
+            
+            if ($check->get_result()->num_rows > 0) {
+                $status = "<div class='alert error'>Error: The violation '$violation_name' is already registered!</div>";
+            } else {
+                $stmt = $conn->prepare("INSERT INTO violation_types (violation_name, fine_amount, description) VALUES (?, ?, ?)");
+                $stmt->bind_param("sds", $violation_name, $fine_amount, $description);
+                if ($stmt->execute()) {
+                    $status = "<div class='alert success'>New violation type added successfully!</div>";
+                }
+            }
+        }
     }
 }
 ?>
@@ -64,7 +91,7 @@ if (isset($_POST['save_type']) && !$is_admin) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vehicle Types Setup | BCTRMS</title>
+    <title>Violation Types Setup | BCTRMS</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
@@ -85,20 +112,14 @@ if (isset($_POST['save_type']) && !$is_admin) {
 
         .header h1 { font-size: 1.5rem; color: #003366; }
 
-        .header-actions {
-            display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
-        }
-
-        .search-container {
-            position: relative; min-width: 250px;
-        }
+        .header-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        
+        .search-container { position: relative; min-width: 250px; }
         .search-container input {
             width: 100%; padding: 10px 15px 10px 35px;
             border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;
         }
-        .search-container i {
-            position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #888;
-        }
+        .search-container i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #888; }
 
         .btn-add { 
             background: #003366; color: white; padding: 10px 20px; 
@@ -109,7 +130,7 @@ if (isset($_POST['save_type']) && !$is_admin) {
         .table-card { background: #fff; padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
         .table-responsive { width: 100%; overflow-x: auto; }
 
-        table { width: 100%; border-collapse: collapse; min-width: 600px; }
+        table { width: 100%; border-collapse: collapse; min-width: 700px; }
         th, td { padding: 15px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px; }
         th { background: #f9f9f9; color: #666; font-size: 12px; text-transform: uppercase; cursor: pointer; }
         th:hover { color: #003366; }
@@ -149,11 +170,11 @@ if (isset($_POST['save_type']) && !$is_admin) {
 
 <div class="main-content">
     <div class="header">
-        <h1>Vehicle Types Setup</h1>
+        <h1>Violation Types Setup</h1>
         <div class="header-actions">
             <div class="search-container">
                 <i class="fa-solid fa-magnifying-glass"></i>
-                <input type="text" id="searchInput" placeholder="Search vehicle types..." onkeyup="filterTable()">
+                <input type="text" id="searchInput" placeholder="Search violation types..." onkeyup="filterTable()">
             </div>
             <?php if (!$is_admin): ?>
                 <button class="btn-add" onclick="openAddModal()">+ Add New Type</button>
@@ -168,8 +189,8 @@ if (isset($_POST['save_type']) && !$is_admin) {
             <table id="typeTable">
                 <thead>
                     <tr>
-                        <!-- <th onclick="sortTable(0)">ID <i class="fa-solid fa-sort"></i></th> -->
-                        <th onclick="sortTable(1)">Type Name <i class="fa-solid fa-sort"></i></th>
+                        <th onclick="sortTable(0)">Violation Name <i class="fa-solid fa-sort"></i></th>
+                        <th onclick="sortTable(1)">Fine Amount <i class="fa-solid fa-sort"></i></th>
                         <th onclick="sortTable(2)">Description <i class="fa-solid fa-sort"></i></th>
                         <?php if (!$is_admin): ?>
                             <th>Actions</th>
@@ -178,20 +199,20 @@ if (isset($_POST['save_type']) && !$is_admin) {
                 </thead>
                 <tbody>
                     <?php
-                    $sql = "SELECT * FROM vehicle_types ORDER BY type_name ASC";
+                    $sql = "SELECT * FROM violation_types ORDER BY violation_name ASC";
                     $result = $conn->query($sql);
                     if ($result && $result->num_rows > 0) {
                         while($row = $result->fetch_assoc()) {
                             $json_data = htmlspecialchars(json_encode($row), ENT_QUOTES, 'UTF-8');
                             echo "<tr>
-                                  
-                                    <td><strong>{$row['type_name']}</strong></td>
+                                    <td><strong>{$row['violation_name']}</strong></td>
+                                    <td>₱" . number_format($row['fine_amount'], 2) . "</td>
                                     <td>{$row['description']}</td>";
                             
                             if (!$is_admin) {
                                 echo "<td>
                                         <i class='fa-solid fa-pen-to-square btn-edit' onclick='openEditModal($json_data)' title='Edit'></i>
-                                        <a href='vehicle_types.php{$role_param}&delete={$row['type_id']}' onclick='return confirm(\"Delete this category?\")'>
+                                        <a href='violation_types.php{$role_param}&delete={$row['type_id']}' onclick='return confirm(\"Delete this violation type?\")'>
                                             <i class='fa-solid fa-trash btn-delete' title='Delete'></i>
                                         </a>
                                     </td>";
@@ -199,8 +220,7 @@ if (isset($_POST['save_type']) && !$is_admin) {
                             echo "</tr>";
                         }
                     } else {
-                        $colspan = $is_admin ? 3 : 4;
-                        echo "<tr class='no-data'><td colspan='$colspan' align='center'>No vehicle types defined.</td></tr>";
+                        echo "<tr class='no-data'><td colspan='4' align='center'>No violation types defined.</td></tr>";
                     }
                     ?>
                 </tbody>
@@ -212,17 +232,22 @@ if (isset($_POST['save_type']) && !$is_admin) {
 <div id="typeModal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <h2 id="modalTitle">Add Vehicle Type</h2>
+            <h2 id="modalTitle">Add Violation Type</h2>
             <span onclick="closeModal()" style="cursor:pointer; font-size:24px;">&times;</span>
         </div>
         <div class="modal-body">
-            <form action="vehicle_types.php<?php echo $role_param; ?>" method="POST" id="typeForm">
+            <form action="violation_types.php<?php echo $role_param; ?>" method="POST" id="typeForm">
                 <input type="hidden" name="is_edit" id="is_edit" value="0">
                 <input type="hidden" name="type_id" id="form_type_id">
                 
                 <div class="form-group">
-                    <label>Type Name</label>
-                    <input type="text" name="type_name" id="form_name" placeholder="e.g. Motorcycle, Sedan" required>
+                    <label>Violation Name</label>
+                    <input type="text" name="violation_name" id="form_name" placeholder="e.g. Speeding, No Helmet" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Fine Amount (PHP)</label>
+                    <input type="number" step="0.01" name="fine_amount" id="form_fine" placeholder="0.00" required>
                 </div>
 
                 <div class="form-group">
@@ -230,7 +255,7 @@ if (isset($_POST['save_type']) && !$is_admin) {
                     <textarea name="description" id="form_description" rows="3"></textarea>
                 </div>
 
-                <button type="submit" name="save_type" id="submitBtn" class="btn-save">Save Vehicle Type</button>
+                <button type="submit" name="save_type" id="submitBtn" class="btn-save">Save Violation Type</button>
             </form>
         </div>
     </div>
@@ -266,10 +291,19 @@ if (isset($_POST['save_type']) && !$is_admin) {
                 shouldSwitch = false;
                 x = rows[i].getElementsByTagName("TD")[n];
                 y = rows[i + 1].getElementsByTagName("TD")[n];
+                
+                let xVal = x.innerText.toLowerCase();
+                let yVal = y.innerText.toLowerCase();
+                
+                if(n === 1) { 
+                    xVal = parseFloat(xVal.replace(/[^\d.]/g, '')) || 0;
+                    yVal = parseFloat(yVal.replace(/[^\d.]/g, '')) || 0;
+                }
+
                 if (dir == "asc") {
-                    if (x.innerText.toLowerCase() > y.innerText.toLowerCase()) { shouldSwitch = true; break; }
+                    if (xVal > yVal) { shouldSwitch = true; break; }
                 } else {
-                    if (x.innerText.toLowerCase() < y.innerText.toLowerCase()) { shouldSwitch = true; break; }
+                    if (xVal < yVal) { shouldSwitch = true; break; }
                 }
             }
             if (shouldSwitch) {
@@ -284,18 +318,19 @@ if (isset($_POST['save_type']) && !$is_admin) {
 
     function openAddModal() {
         typeForm.reset();
-        document.getElementById("modalTitle").innerText = "Add Vehicle Type";
-        document.getElementById("submitBtn").innerText = "Save Vehicle Type";
+        document.getElementById("modalTitle").innerText = "Add Violation Type";
+        document.getElementById("submitBtn").innerText = "Save Violation Type";
         document.getElementById("is_edit").value = "0";
         modal.style.display = "flex";
     }
 
     function openEditModal(data) {
-        document.getElementById("modalTitle").innerText = "Edit Vehicle Type";
-        document.getElementById("submitBtn").innerText = "Update Vehicle Type";
+        document.getElementById("modalTitle").innerText = "Edit Violation Type";
+        document.getElementById("submitBtn").innerText = "Update Violation Type";
         document.getElementById("is_edit").value = "1";
         document.getElementById("form_type_id").value = data.type_id;
-        document.getElementById("form_name").value = data.type_name;
+        document.getElementById("form_name").value = data.violation_name;
+        document.getElementById("form_fine").value = data.fine_amount;
         document.getElementById("form_description").value = data.description;
         modal.style.display = "flex";
     }
